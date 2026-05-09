@@ -2,7 +2,8 @@ import * as THREE from 'https://unpkg.com/three?module';
 
 const loader = new THREE.TextureLoader();
 
-const earthTexture = loader.load('earth.jpg');
+// Earth
+const earthTexture = loader.load('assets/earth.jpg');
 
 const geometry = new THREE.SphereGeometry(1, 64, 64)
 

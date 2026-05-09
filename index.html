@@ -1,18 +1,42 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <title>KSP at Home</title>
+    <script src="maneuver.js"></script>
+</head>
 <style>
-  body {
-    margin: 0;
-    overflow: hidden;
-  }
+    body {
+        margin: 0;
+        overflow: hidden;
+    }
 
-  canvas {
-    display: block;
-  }
+    canvas {
+        display: block;
+    }
+
+    #ui {
+        position: absolute;
+        top: 2vh;
+        left: 2vw;
+        z-index: 10;
+
+        display: flex;
+        gap: 10px;
+    }
+
+    button {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
 </style>
-<body>
 
-<script type="module" src="main.js"></script>
+<body>
+    <div id="ui">
+        <button id="prograde">Prograde</button>
+    </div>
+
+    <script type="module" src="main.js"></script>
 
 </body>
+
 </html>
