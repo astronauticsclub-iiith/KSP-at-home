@@ -14,3 +14,19 @@ const material = new THREE.MeshStandardMaterial({
 const earth = new THREE.Mesh(geometry, material);
 
 export {earth};
+
+// moon
+
+const moonTexture = loader.load('assets/moon.jpg');
+
+const geometry_moon = new THREE.SphereGeometry(0.4, 64, 64)
+
+const material_moon = new THREE.MeshStandardMaterial({
+    map: moonTexture
+});
+
+const moon = new THREE.Mesh(geometry_moon, material_moon);
+moon.position.x=8
+moon.position.y=4
+
+export {moon}

@@ -33,8 +33,10 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 //scene
 import { earth } from './planets.js';
 import { pod } from './pod.js';
+import {moon} from './planets.js'
 scene.add(pod)
 scene.add(earth);
+scene.add(moon);
 
 // lights
 
