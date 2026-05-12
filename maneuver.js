@@ -1,11 +1,14 @@
-let r = { x: 0, y: 2, z: 0 } // postion and velocities
+let r = { x:-3, y: -2, z: 0 } // postion and velocities
 let v = { x: 2, y: 0, z: 0 }
 let theta = 0;
 let G = 7; // gravitational constant times mass ARBITRARY UNITS
 let dt = 0.01 // time step
 
-let bodies = { earth: { m: 1, pos: { x: 0, y: 0, z: 0 } }, 
-moon: { m: 1 / 81, pos: { x: 8, y: 4, z: 0 } } }
+let bodies = {
+    earth: { m: 1, pos: { x: -3, y: -4, z: 0 } },
+    moon: { m: 1 / 81, pos: { x: 6, y: 8, z: 0 } }
+}
+export {bodies}
 
 function distance(x1, y1, z1, x2, y2, z2) {
     return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2)
@@ -21,9 +24,9 @@ function acc(pos) {
         const dx = body.pos.x - pos.x;
         const dy = body.pos.y - pos.y;
 
-        const dist = Math.sqrt(dx*dx + dy*dy);
+        const dist = Math.sqrt(dx * dx + dy * dy);
 
-        const factor = G * body.m / (dist**3);
+        const factor = G * body.m / (dist ** 3);
 
         ax += factor * dx;
         ay += factor * dy;
@@ -33,7 +36,7 @@ function acc(pos) {
 }
 
 export function step() {
-    const {ax,ay} = acc(r);
+    const { ax, ay } = acc(r);
 
     v.x += ax * dt;
     v.y += ay * dt;
@@ -49,12 +52,29 @@ export function step() {
 // Prograde and Retrograde 
 
 let dv = 0.2;
-export function prograde() {
-    v.x += dv * Math.cos(v.x / Math.sqrt(v.x ** 2 + v.y ** 2));
-    v.y += dv * Math.sin(v.x / Math.sqrt(v.x ** 2 + v.y ** 2));
+function prograde() {
+
+    const speed =
+        Math.sqrt(v.x ** 2 + v.y ** 2);
+    v.x += dv * (v.x / speed);
+    v.y += dv * (v.y / speed);
 }
+function retrograde() {
+
+    const speed =
+        Math.sqrt(v.x ** 2 + v.y ** 2);
+
+    v.x -= dv * (v.x / speed);
+    v.y -= dv * (v.y / speed);
+}
+
 
 const probtn = document.getElementById('prograde');
 probtn.addEventListener('click', (event) => {
     prograde();
+})
+
+const retrobtn = document.getElementById('retrograde');
+retrobtn.addEventListener('click', (event) => {
+    retrograde();
 })

@@ -1,4 +1,5 @@
 import * as THREE from 'https://unpkg.com/three?module';
+import { bodies } from './maneuver.js'
 
 const loader = new THREE.TextureLoader();
 
@@ -12,8 +13,10 @@ const material = new THREE.MeshStandardMaterial({
 });
 
 const earth = new THREE.Mesh(geometry, material);
+earth.position.x = bodies.earth.pos.x;
+earth.position.y = bodies.earth.pos.y;
 
-export {earth};
+export { earth };
 
 // moon
 
@@ -25,8 +28,8 @@ const material_moon = new THREE.MeshStandardMaterial({
     map: moonTexture
 });
 
-const moon = new THREE.Mesh(geometry_moon, material_moon);
-moon.position.x=8
-moon.position.y=4
 
-export {moon}
+const moon = new THREE.Mesh(geometry_moon, material_moon);
+moon.position.x = bodies.moon.pos.x;
+moon.position.y = bodies.moon.pos.y;
+export { moon }
