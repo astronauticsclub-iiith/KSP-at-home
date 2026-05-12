@@ -33,7 +33,7 @@ renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 //scene
 import { earth } from './planets.js';
 import { pod } from './pod.js';
-import {moon} from './planets.js'
+import { moon } from './planets.js'
 scene.add(pod)
 scene.add(earth);
 scene.add(moon);
@@ -47,6 +47,13 @@ scene.add(light);
 const ambient = new THREE.AmbientLight(0xffffff, 0.2);
 scene.add(ambient);
 
+//background
+const loader = new THREE.TextureLoader();
+
+loader.load("assets/bg.jpg", (texture) => {
+    scene.background = texture;
+});
+
 // Orbit Equations and Animation loop
 import * as STEP from './maneuver.js';
 
@@ -56,16 +63,25 @@ const dir = new THREE.Vector3();
 const origin = new THREE.Vector3();
 const length = 1;
 const color = 0xff0000;
-
+const R=15
+let omega=0;
 const velArrow = new THREE.ArrowHelper(dir, origin, length, color);
 scene.add(velArrow);
 
+//animation loop
 function animate() {
 
-    const { x, y, theta,vx,vy } = STEP.step();
+    const { x, y, theta, vx, vy } = STEP.step();
     pod.position.x = x;
     pod.position.y = y;
     pod.rotation.z = Math.PI / 2 - theta
+    earth.rotation.y += 0.002;
+
+
+    moon.position.x =earth.position.x + R * Math.cos(omega+Math.PI/3);
+
+    moon.position.y =earth.position.y + R * Math.sin(omega+Math.PI/3);
+    omega-=0.0002
 
     // velocity vector
     const vVec = new THREE.Vector3(vx, vy, 0);
