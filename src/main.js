@@ -1,5 +1,5 @@
 import * as THREE from'three';
-
+import './styles.css'
 const scene = new THREE.Scene()
 console.log("here")
 
@@ -66,17 +66,15 @@ scene.add(velArrow);
 //animation loop
 function animate() {
 
-    const { x, y, theta, vx, vy } = STEP.step();
+    const { x, y, theta, vx, vy,moonx,moony } = STEP.step();
     pod.position.x = x;
     pod.position.y = y;
     pod.rotation.z = -Math.PI / 2 + theta
     earth.rotation.y += 0.002;
 
 
-    moon.position.x =earth.position.x + R * Math.cos(omega+Math.PI/3);
-    STEP.bodies.moon.pos.x=moon.position.x //update both the UI and the maths :(
-    STEP.bodies.moon.pos.y=moon.position.y
-    moon.position.y =earth.position.y + R * Math.sin(omega+Math.PI/3);
+    moon.position.x =moonx
+    moon.position.y =moony
     omega-=0.0001
 
     // velocity vector
