@@ -4,7 +4,7 @@ import { bodies } from './maneuver.js'
 const loader = new THREE.TextureLoader();
 
 // Earth
-const earthTexture = loader.load('assets/earth.jpg');
+const earthTexture = loader.load('assets/earth.webp');
 
 const geometry = new THREE.SphereGeometry(1, 64, 64)
 
@@ -20,7 +20,7 @@ export { earth };
 
 // moon
 
-const moonTexture = loader.load('assets/moon.jpg');
+const moonTexture = loader.load('assets/moon.webp');
 
 const geometry_moon = new THREE.SphereGeometry(0.4, 64, 64)
 

@@ -50,7 +50,7 @@ scene.add(ambient);
 //background
 const loader = new THREE.TextureLoader();
 
-loader.load("assets/bg.jpg", (texture) => {
+loader.load("assets/bg.webp", (texture) => {
     scene.background = texture;
 });
 

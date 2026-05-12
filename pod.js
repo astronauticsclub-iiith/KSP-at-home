@@ -12,7 +12,7 @@ const geometry_pod = new THREE.CylinderGeometry(
     0.7,
     64
 )
-const hullTexture = loader.load('assets/hull.jpg');
+const hullTexture = loader.load('assets/hull.webp');
 
 const material_pod = new THREE.MeshStandardMaterial( { map:hullTexture} );
 const pod = new THREE.Mesh(geometry_pod, material_pod );
