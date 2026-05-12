@@ -6,8 +6,8 @@ let dt = 0.01 // time step
 
 let bodies = {
     earth: { m: 1, pos: { x: -3, y: -4, z: 0 } },
-    moon: { m: 1 / 81, pos: { x: 6, y: 8, z: 0 } }
-}
+    moon: { m: 20 / 81, pos: { x: 6, y: 8, z: 0 } }
+} //artifically increase moons pull for now
 export {bodies}
 
 function distance(x1, y1, z1, x2, y2, z2) {
@@ -34,19 +34,33 @@ function acc(pos) {
 
     return { ax, ay };
 }
-
+// Implementing velocity verlet algorithm which is a symplectic integrator
 export function step() {
-    const { ax, ay } = acc(r);
 
-    v.x += ax * dt;
-    v.y += ay * dt;
+    // accn
+    const { ax: ax_old, ay: ay_old } = acc(r);
 
-    r.x += v.x * dt;
-    r.y += v.y * dt;
+    // position update
+    r.x += v.x * dt + 0.5 * ax_old * dt * dt;
+    r.y += v.y * dt + 0.5 * ay_old * dt * dt;
 
+    // new accn
+    const { ax: ax_new, ay: ay_new } = acc(r);
+
+    // velocity update
+    v.x += 0.5 * (ax_old + ax_new) * dt;
+    v.y += 0.5 * (ay_old + ay_new) * dt;
+
+    // orientation
     const theta = Math.atan2(v.y, v.x);
 
-    return { x: r.x, y: r.y, theta: theta, vx: v.x, vy: v.y }
+    return {
+        x: r.x,
+        y: r.y,
+        theta: theta,
+        vx: v.x,
+        vy: v.y
+    };
 }
 
 // Prograde and Retrograde 
