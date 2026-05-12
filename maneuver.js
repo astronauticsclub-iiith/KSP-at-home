@@ -1,5 +1,5 @@
 let r = { x:-3, y: -2, z: 0 } // postion and velocities
-let v = { x: 2, y: 0, z: 0 }
+let v = { x: -2, y: 0, z: 0 }
 let theta = 0;
 let G = 7; // gravitational constant times mass ARBITRARY UNITS
 let dt = 0.01 // time step

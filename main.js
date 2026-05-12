@@ -79,9 +79,10 @@ function animate() {
 
 
     moon.position.x =earth.position.x + R * Math.cos(omega+Math.PI/3);
-
+    STEP.bodies.moon.pos.x=moon.position.x //update both the UI and the maths :(
+    STEP.bodies.moon.pos.y=moon.position.y
     moon.position.y =earth.position.y + R * Math.sin(omega+Math.PI/3);
-    omega-=0.0002
+    omega-=0.0001
 
     // velocity vector
     const vVec = new THREE.Vector3(vx, vy, 0);
