@@ -1,8 +1,5 @@
-import * as THREE from 'https://unpkg.com/three?module';
-
-import * as BufferGeometryUtils from
-'https://unpkg.com/three/examples/jsm/utils/BufferGeometryUtils.js?module';
-
+import * as THREE from 'three';
+import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 const loader = new THREE.TextureLoader();
 

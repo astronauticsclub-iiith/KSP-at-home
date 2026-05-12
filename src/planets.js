@@ -1,4 +1,4 @@
-import * as THREE from 'https://unpkg.com/three?module';
+import * as THREE from 'three';
 import { bodies } from './maneuver.js'
 
 const loader = new THREE.TextureLoader();

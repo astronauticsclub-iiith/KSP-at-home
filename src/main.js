@@ -1,9 +1,4 @@
-import * as THREE from
-    'https://unpkg.com/three?module';
-
-import * as BufferGeometryUtils from
-    'https://unpkg.com/three/examples/jsm/utils/BufferGeometryUtils.js?module';
-
+import * as THREE from'three';
 
 const scene = new THREE.Scene()
 console.log("here")
@@ -74,7 +69,7 @@ function animate() {
     const { x, y, theta, vx, vy } = STEP.step();
     pod.position.x = x;
     pod.position.y = y;
-    pod.rotation.z = Math.PI / 2 - theta
+    pod.rotation.z = -Math.PI / 2 + theta
     earth.rotation.y += 0.002;
 
 
