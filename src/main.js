@@ -58,10 +58,17 @@ const dir = new THREE.Vector3();
 const origin = new THREE.Vector3();
 const length = 1;
 const color = 0xff0000;
-const R=15
-let omega=0;
 const velArrow = new THREE.ArrowHelper(dir, origin, length, color);
 scene.add(velArrow);
+
+//add zoom features
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableRotate = false;  //2D only
+controls.enableDamping = true; 
+controls.zoomToCursor = true;
+    
 
 //animation loop
 function animate() {
@@ -75,7 +82,6 @@ function animate() {
 
     moon.position.x =moonx
     moon.position.y =moony
-    omega-=0.0001
 
     // velocity vector
     const vVec = new THREE.Vector3(vx, vy, 0);
@@ -86,9 +92,10 @@ function animate() {
     velArrow.position.set(x, y, 0);
     velArrow.setDirection(dir);
 
-    // scale arrow length = speed
-    velArrow.setLength(vVec.length());
+    // scale arrow length = 2*speed // just a scale
+    velArrow.setLength(2*vVec.length());
 
+    controls.update();  //zoom update
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
 }

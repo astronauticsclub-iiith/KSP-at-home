@@ -4,7 +4,6 @@ const params = {
     G: 1, // Graviational constant in ARBITRARY UNITS
     dt: 0.03, // TIME SCALE
     moonMass: 20 / 81,
-    thrust: 0.2
 };
 
 const gui = new GUI();
