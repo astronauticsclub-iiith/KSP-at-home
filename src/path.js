@@ -1,5 +1,4 @@
 import { bodies } from "./maneuver.js";
-import { pod } from "./pod.js";
 import { v } from "./maneuver.js";
 import { r } from "./maneuver.js";
 import { params } from "./maneuver.js";
