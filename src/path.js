@@ -1,7 +1,15 @@
-import { bodies } from "./maneuver.js";
-import { v } from "./maneuver.js";
-import { r } from "./maneuver.js";
-import { params } from "./maneuver.js";
+import * as MAN from './maneuver.js'
+import * as THREE from 'three'
+
+// Design of the path
+const trajectoryGeometry = new THREE.BufferGeometry();
+const trajectoryMaterial = new THREE.PointsMaterial({
+    color: 0x00ff00,
+    size: 0.02,
+    sizeAttenuation: false
+});
+const trajectoryPoints = new THREE.Points(trajectoryGeometry, trajectoryMaterial);
+scene.add(trajectoryPoints); 
 
 const pathLen = 2000;
 
