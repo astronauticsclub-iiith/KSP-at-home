@@ -51,6 +51,7 @@ loader.load("assets/bg.webp", (texture) => {
 
 // Orbit Equations and Animation loop
 import * as STEP from './maneuver.js';
+import * as pathMaker from './path.js';
 
 // velocity vectors
 
@@ -60,6 +61,16 @@ const length = 1;
 const color = 0xff0000;
 const velArrow = new THREE.ArrowHelper(dir, origin, length, color);
 scene.add(velArrow);
+
+// trajectory dots (single reusable Points)
+const trajectoryGeometry = new THREE.BufferGeometry();
+const trajectoryMaterial = new THREE.PointsMaterial({
+    color: 0x00ff00,
+    size: 0.02,
+    sizeAttenuation: false
+});
+const trajectoryPoints = new THREE.Points(trajectoryGeometry, trajectoryMaterial);
+scene.add(trajectoryPoints);
 
 //add zoom features
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -74,6 +85,8 @@ controls.zoomToCursor = true;
 function animate() {
 
     const { x, y, theta, vx, vy,moonx,moony } = STEP.step();
+    const path = pathMaker.pathStep();
+
     pod.position.x = x;
     pod.position.y = y;
     pod.rotation.z = -Math.PI / 2 + theta
@@ -88,6 +101,21 @@ function animate() {
 
     // set arrow direction (must be normalized)
     const dir = vVec.clone().normalize();
+
+        // update reusable trajectory geometry (one Points object)
+        if (Array.isArray(path) && path.length > 0) {
+            const positions = new Float32Array(path.length * 3);
+            for (let i = 0; i < path.length; i++) {
+                positions[i * 3] = path[i].rx;
+                positions[i * 3 + 1] = path[i].ry;
+                positions[i * 3 + 2] = 0;
+            }
+            trajectoryGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            trajectoryGeometry.computeBoundingSphere();
+        } else {
+            // clear geometry when no path
+            trajectoryGeometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(0), 3));
+        }
 
     velArrow.position.set(x, y, 0);
     velArrow.setDirection(dir);

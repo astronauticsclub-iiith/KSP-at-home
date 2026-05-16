@@ -23,6 +23,9 @@ let bodies = {
     moon: { m: params.moonMass, pos: { x: 6, y: 8, z: 0 } }
 } //artifically increase moons pull for now
 export { bodies }
+export { v }
+export { r }
+export { params }
 
 function distance(x1, y1, x2, y2) {
     return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
@@ -107,7 +110,7 @@ export function step() {
 
 // Prograde and Retrograde 
 
-let dv = 0.02;
+let dv = 0.002;
 function prograde() {
 
     const speed =
@@ -134,6 +137,34 @@ probtn.addEventListener('pointerup', (event) => {
     prograding = false;
 })
 
+window.addEventListener('keydown', (event) => {
+    if (event.code === 'Space') {
+        // Prevent the default behavior (like scrolling down)
+        event.preventDefault();
+        prograding = true;
+    }
+});
+
+window.addEventListener('keyup', (event) => {
+    if (event.code === 'Space') {
+        event.preventDefault();
+        prograding = false;
+    }
+});
+
+window.addEventListener('keydown', (event) => {
+    if (event.code === 'ShiftLeft') {
+        event.preventDefault();
+        retrograding = true;
+    }
+});
+
+window.addEventListener('keyup', (event) => {
+    if (event.code === 'ShiftLeft') {
+        event.preventDefault();
+        retrograding = false;
+    }
+});
 
 const retrobtn = document.getElementById('retrograde');
 retrobtn.addEventListener('pointerdown', (event) => {
