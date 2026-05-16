@@ -12,15 +12,17 @@ gui.add(params, 'G', 0, 20, 0.1);
 
 gui.add(params, 'dt', 0.001, 0.05, 0.001);
 
-gui.add(params, 'moonMass', 0.01, 1, 0.01); // mass of earth is 1
+gui.add(params, 'moonMass', 0.01, 1, 0.01).onChange(v => bodies.moon.m = v); // mass of earth is 1
 
 
 let r = { x: -3, y: -2, z: 0 } // postion and velocities
 let v = { x: 1 / Math.sqrt(2), y: 0, z: 0 }
-let R=15 //distance between earth and moon
+let R = 15 //distance between earth and moon
 let bodies = {
     earth: { m: 1, pos: { x: -3, y: -4, z: 0 } },
-    moon: { m: params.moonMass, pos: { x: 6, y: 8, z: 0 } }
+    moon: { m: params.moonMass, pos: { x: 6, y: 8, z: 0 } },
+    sun: { m: 0, pos: { x: -20, y: 0, z: 1 } } // mass of sun dosent matter 
+
 } //artifically increase moons pull for now
 export { bodies }
 
@@ -34,7 +36,7 @@ function acc(pos) {
     let ay = 0;
 
     for (const body of Object.values(bodies)) {
-
+        if(body.m==0){continue;}
         const dx = body.pos.x - pos.x;
         const dy = body.pos.y - pos.y;
 
@@ -52,11 +54,11 @@ function acc(pos) {
 let prograding = false;
 let retrograding = false;
 
-let omega=0;
+let omega = 0;
 
 //UI little bit
-let vel=document.getElementById('velocity');
-let accn=document.getElementById('acceleration');
+let vel = document.getElementById('velocity');
+let accn = document.getElementById('acceleration');
 
 // Implementing velocity verlet algorithm which is a symplectic integrator
 export function step() {
@@ -70,12 +72,12 @@ export function step() {
 
     // new accn
     const { ax: ax_new, ay: ay_new } = acc(r);
-    accn.innerText=Math.sqrt(ax_new**2+ay_new**2).toFixed(2);
+    accn.innerText = Math.sqrt(ax_new ** 2 + ay_new ** 2).toFixed(2);
 
     // velocity update
     v.x += 0.5 * (ax_old + ax_new) * params.dt;
     v.y += 0.5 * (ay_old + ay_new) * params.dt;
-    vel.innerText=Math.sqrt(v.x**2+v.y**2).toFixed(2)
+    vel.innerText = Math.sqrt(v.x ** 2 + v.y ** 2).toFixed(2)
 
     // orientation
     const theta = Math.atan2(v.y, v.x);
@@ -90,9 +92,9 @@ export function step() {
     }
 
     // moon rotation
-    bodies.moon.pos.x = bodies.earth.pos.x + R * Math.cos(omega+Math.PI/3);
-    bodies.moon.pos.y = bodies.earth.pos.y + R * Math.sin(omega+Math.PI/3);
-    omega-=0.0001
+    bodies.moon.pos.x = bodies.earth.pos.x + R * Math.cos(omega + Math.PI / 3);
+    bodies.moon.pos.y = bodies.earth.pos.y + R * Math.sin(omega + Math.PI / 3);
+    omega -= 0.0001
 
     return {
         x: r.x,
@@ -100,14 +102,14 @@ export function step() {
         theta: theta,
         vx: v.x,
         vy: v.y,
-        moonx:bodies.moon.pos.x,
-        moony:bodies.moon.pos.y
+        moonx: bodies.moon.pos.x,
+        moony: bodies.moon.pos.y
     };
 }
 
 // Prograde and Retrograde 
 
-let dv = 0.02;
+let dv = 0.01;
 function prograde() {
 
     const speed =

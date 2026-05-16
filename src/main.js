@@ -1,7 +1,7 @@
 import * as THREE from'three';
 import './styles.css'
 const scene = new THREE.Scene()
-console.log("here")
+
 
 // camera
 const camera = new THREE.PerspectiveCamera(
@@ -19,28 +19,34 @@ camera.lookAt(0, 0, 0);
 const renderer = new THREE.WebGLRenderer();
 
 renderer.setSize(window.innerWidth, window.innerHeight);
-
 document.body.appendChild(renderer.domElement);
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.type = THREE.PCFShadowMap;
 
 
 //scene
 import { earth } from './planets.js';
 import { pod } from './pod.js';
 import { moon } from './planets.js'
+import {sun} from './planets.js'
 scene.add(pod)
 scene.add(earth);
 scene.add(moon);
+scene.add(sun);
 
 // lights
 
-const light = new THREE.DirectionalLight(0xffffff, 2);
-light.position.set(3, 2, 4);
-scene.add(light);
-
 const ambient = new THREE.AmbientLight(0xffffff, 0.2);
 scene.add(ambient);
+
+//sunlight
+const sunlight = new THREE.PointLight(0xffffff, 20);
+sunlight.decay = 0; // dosent look lit enough otherwise
+sunlight.position.copy(sun.position);
+
+sunlight.castShadow = true;
+
+scene.add(sunlight);
 
 //background
 const loader = new THREE.TextureLoader();
