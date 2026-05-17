@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>KSP at Home</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="module" crossorigin src="/KSP-at-home/assets/index-GQYvFram.js"></script>
+  <link rel="stylesheet" crossorigin href="/KSP-at-home/assets/index-BaUWKtF2.css">
+</head>
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+  }
+
+  canvas {
+    display: block;
+  }
+
+  #ui {
+    position: absolute;
+    top: 2vh;
+    left: 2vw;
+    z-index: 10;
+
+    display: flex;
+    gap: 10px;
+  }
+
+  button {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+</style>
+
+<body class="m-0 overflow-hidden bg-black text-green-400 font-mono">
+
+  <div class="fixed inset-0 z-10 pointer-events-none">
+
+    <!-- left control column -->
+    <div class="absolute top-4 left-4
+             flex flex-col gap-2
+             pointer-events-auto">
+
+      <button id="prograde" class="w-40
+               border border-green-500
+               bg-black/80
+               px-4 py-2
+               text-left
+               hover:bg-green-500/10
+               active:bg-green-500/20
+               transition">
+        PROGRADE
+      </button>
+
+      <button id="retrograde" class="w-40
+               border border-green-500
+               bg-black/80
+               px-4 py-2
+               text-left
+               hover:bg-green-500/10
+               active:bg-green-500/20
+               transition">
+        RETROGRADE
+      </button>
+
+      <button id="predict" class="w-40
+               border border-green-500
+               bg-black/80
+               px-4 py-2
+               text-left
+               hover:bg-green-500/10
+               active:bg-green-500/20
+               transition">
+        Predict Trajectory
+        </button>
+
+    </div>
+
+    <!-- TELEMETRY -->
+    <div id="telemetry" class="absolute bottom-4 left-4
+             w-72
+             border border-green-500
+             bg-black/85
+             p-4
+             text-sm
+             leading-6">
+
+      <div class="mb-3 border-b border-green-500 pb-2">
+        FLIGHT TELEMETRY
+      </div>
+
+      <div class="flex justify-between">
+        <span>VELOCITY</span>
+        <span id="velocity">0</span>
+      </div>
+      <div class="flex justify-between">
+        <span>ACCELERATION</span>
+        <span id="acceleration">0</span>
+      </div>
+
+      <div class="flex justify-between">
+        <span>TIMESTEP</span>
+        <span id="timestep">-</span>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+
+</html>
