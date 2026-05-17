@@ -29,10 +29,12 @@ import { earth } from './planets.js';
 import { pod } from './pod.js';
 import { moon } from './planets.js'
 import {sun} from './planets.js'
+import { trajectory} from './path.js';
 scene.add(pod)
 scene.add(earth);
 scene.add(moon);
 scene.add(sun);
+scene.add(trajectory);
 
 // lights
 
@@ -58,6 +60,9 @@ loader.load("assets/bg.webp", (texture) => {
 // Orbit Equations and Animation loop
 import * as STEP from './maneuver.js';
 
+// trajectory prediction
+import * as PATH from './path.js'
+
 // velocity vectors
 
 const dir = new THREE.Vector3();
@@ -74,8 +79,9 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableRotate = false;  //2D only
 controls.enableDamping = true; 
 controls.zoomToCursor = true;
-    
 
+
+PATH.predict_trajectory_init() //start trajectory
 //animation loop
 function animate() {
 
@@ -100,6 +106,10 @@ function animate() {
 
     // scale arrow length = 2*speed // just a scale
     velArrow.setLength(2*vVec.length());
+
+    if(PATH.autoPredict){
+        PATH.trajecotry_UI_update();
+    }
 
     controls.update();  //zoom update
     renderer.render(scene, camera);

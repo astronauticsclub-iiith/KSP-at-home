@@ -1,64 +1,114 @@
 import * as MAN from './maneuver.js'
 import * as THREE from 'three'
 
-// Design of the path
-const trajectoryGeometry = new THREE.BufferGeometry();
-const trajectoryMaterial = new THREE.PointsMaterial({
+const pathLen = 2000; // predict trajectory 2000 steps ahead
+
+// -----------Trajectory Graphics------------
+const trajectory_Geometry = new THREE.BufferGeometry();
+const trajectory_Material = new THREE.PointsMaterial({
     color: 0x00ff00,
-    size: 0.02,
+    size: 0.5,
     sizeAttenuation: false
 });
-const trajectoryPoints = new THREE.Points(trajectoryGeometry, trajectoryMaterial);
-scene.add(trajectoryPoints); 
 
-const pathLen = 2000;
+// intialize attibutes to pick up from
+const positions = new Float32Array(pathLen * 3);
 
-function distance(x1, y1, x2, y2) {
-    return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
-}
+trajectory_Geometry.setAttribute(
+    'position',
+    new THREE.BufferAttribute(positions, 3)
+);
 
-function acc(pos) {
+const trajectory = new THREE.Points(trajectory_Geometry, trajectory_Material);
+export { trajectory }
 
-    let ax = 0;
-    let ay = 0;
+//------------------------
 
-    for (const body of Object.values(bodies)) {
+export let sim_pos = [];
 
-        const dx = body.pos.x - pos.x;
-        const dy = body.pos.y - pos.y;
+/**
+ * Predicts future spacecraft positions and stores them in sim_pos.
+ *
+ * @returns {void}
+ */
+export function predict_trajectory_init() {
 
-        const dist = distance(body.pos.x, body.pos.y, pos.x, pos.y);
+    sim_pos = [];
 
-        const factor = params.G * body.m / (dist ** 3);
+    let pseudo_r = { x: MAN.r.x, y: MAN.r.y, z: MAN.r.z };
+    let pseudo_v = { x: MAN.v.x, y: MAN.v.y, z: MAN.v.z };
 
-        ax += factor * dx;
-        ay += factor * dy;
-    }
-
-    return { ax, ay };
-}
-
-// Implementing velocity verlet algorithm which is a symplectic integrator
-export function pathStep() {
-    const simR = { x: r.x, y: r.y };
-    const simV = { x: v.x, y: v.y };
-
-    let path = [];
     for (let i = 0; i < pathLen; i++) {
-        // accn
-        const { ax: ax_old, ay: ay_old } = acc(simR);
 
-        const dt = 0.1;
-        // position update
-        simR.x += simV.x * dt + 0.5 * ax_old * dt * dt;
-        simR.y += simV.y * dt + 0.5 * ay_old * dt * dt;
-        path.push({rx: simR.x, ry: simR.y});
-        // new accn
-        const { ax: ax_new, ay: ay_new } = acc(simR);
+        const { ax: ax_old, ay: ay_old } = MAN.acc(pseudo_r);
 
-        // velocity update
-        simV.x += 0.5 * (ax_old + ax_new) * dt;
-        simV.y += 0.5 * (ay_old + ay_new) * dt;
+        pseudo_r.x += pseudo_v.x * 0.03 + 0.5 * ax_old * 0.03 * 0.03;
+        pseudo_r.y += pseudo_v.y * 0.03 + 0.5 * ay_old * 0.03 * 0.03;
+
+        const { ax: ax_new, ay: ay_new } = MAN.acc(pseudo_r);
+
+        pseudo_v.x += 0.5 * (ax_old + ax_new) * 0.03;
+        pseudo_v.y += 0.5 * (ay_old + ay_new) * 0.03;
+
+        sim_pos.push({
+            x: pseudo_r.x,
+            y: pseudo_r.y
+        });
     }
-    return path;
 }
+
+
+//Updating the GUI
+/**
+ * Updates the trajectory render buffer using
+ * the current predicted trajectory positions.
+ *
+ * @returns {void}
+ */
+export function trajecotry_UI_update() {
+    const attr = trajectory_Geometry.attributes.position;
+
+    if (!sim_pos || sim_pos.length === 0) {
+        trajectory_Geometry.setDrawRange(0, 0);
+        attr.needsUpdate = true;
+        return;
+    }
+
+
+    sim_pos = [];
+    predict_trajectory_init();
+
+    const count = Math.min(sim_pos.length, pathLen);
+
+    for (let i = 0; i < count; i++) {
+        attr.array[i * 3] = sim_pos[i].x;
+        attr.array[i * 3 + 1] = sim_pos[i].y;
+        attr.array[i * 3 + 2] = 0;
+    }
+
+    trajectory_Geometry.setDrawRange(0, count);
+
+    attr.needsUpdate = true;
+}
+
+
+// ---------UI update----------
+
+export let autoPredict = false;
+const tra_btn = document.getElementById('predict');
+
+tra_btn.addEventListener('click', () => {
+
+    autoPredict = !autoPredict;
+
+    if (autoPredict) {
+        tra_btn.innerText = 'Stop Prediction';
+    }
+    else {
+        tra_btn.innerText = 'Predict Trajectory';
+        const attr = trajectory_Geometry.attributes.position;
+        trajectory_Geometry.setDrawRange(0, 0);
+        attr.needsUpdate=true;
+
+    }
+});

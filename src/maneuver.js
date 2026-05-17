@@ -25,18 +25,19 @@ let bodies = {
 
 } //artifically increase moons pull for now
 export { bodies }
+export { r, v };
 
 function distance(x1, y1, x2, y2) {
     return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 }
 
-function acc(pos) {
+export function acc(pos) {
 
     let ax = 0;
     let ay = 0;
 
     for (const body of Object.values(bodies)) {
-        if(body.m==0){continue;}
+        if (body.m == 0) { continue; }
         const dx = body.pos.x - pos.x;
         const dy = body.pos.y - pos.y;
 
@@ -61,6 +62,21 @@ let vel = document.getElementById('velocity');
 let accn = document.getElementById('acceleration');
 
 // Implementing velocity verlet algorithm which is a symplectic integrator
+
+/**
+ * Advances the spacecraft simulation by one timestep
+ * using Velocity Verlet integration.
+ *
+ * @returns {{
+ *  x:number,
+ *  y:number,
+ *  theta:number,
+ *  vx:number,
+ *  vy:number,
+ *  moonx:number,
+ *  moony:number
+ * }}
+ */
 export function step() {
 
     // accn
@@ -108,6 +124,7 @@ export function step() {
 }
 
 // Prograde and Retrograde 
+export let update_trajectory_prediction = false;
 
 let dv = 0.01;
 function prograde() {
@@ -130,19 +147,24 @@ function retrograde() {
 const probtn = document.getElementById('prograde');
 probtn.addEventListener('pointerdown', (event) => {
     prograding = true;
+    update_trajectory_prediction = true;
 })
 
 probtn.addEventListener('pointerup', (event) => {
     prograding = false;
+    update_trajectory_prediction = false;
+
 })
 
 
 const retrobtn = document.getElementById('retrograde');
 retrobtn.addEventListener('pointerdown', (event) => {
     retrograding = true;
+    update_trajectory_prediction = true;
 })
 
 retrobtn.addEventListener('pointerup', (event) => {
     retrograding = false;
+    update_trajectory_prediction = false;
 })
 
