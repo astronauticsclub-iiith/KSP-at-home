@@ -1,6 +1,8 @@
 import * as THREE from 'three';
+import * as PLANETS from './planets.js'
 import './styles.css';
-import { updateTelemetry } from './ui.js';
+// import { updateTelemetry } from './ui.js';
+import * as UI from './ui.js'
 
 const scene = new THREE.Scene()
 
@@ -27,16 +29,14 @@ renderer.shadowMap.type = THREE.PCFShadowMap;
 
 
 //scene
-import { earth } from './planets.js';
-import { pod } from './pod.js';
-import { moon } from './planets.js'
-import { sun } from './planets.js'
-import { trajectory } from './path.js';
-scene.add(pod)
-scene.add(earth);
-scene.add(moon);
-scene.add(sun);
-scene.add(trajectory);
+// import { pod } from './pod.js';
+// import { trajectory } from './trajectory.js';
+import * as POD from './pod.js'
+scene.add(POD.pod)
+scene.add(PLANETS.earth);
+scene.add(PLANETS.moon);
+scene.add(PLANETS.sun);
+scene.add(POD.trajectory);
 
 // lights
 
@@ -46,7 +46,7 @@ scene.add(ambient);
 //sunlight
 const sunlight = new THREE.PointLight(0xffffff, 20);
 sunlight.decay = 0; // dosent look lit enough otherwise
-sunlight.position.copy(sun.position);
+sunlight.position.copy(PLANETS.sun.position);
 
 sunlight.castShadow = true;
 
@@ -63,7 +63,7 @@ loader.load("assets/bg.webp", (texture) => {
 import * as STEP from './maneuver.js';
 
 // trajectory prediction
-import * as PATH from './path.js'
+import * as PATH from './trajectory.js'
 
 // velocity vectors
 
@@ -88,17 +88,17 @@ PATH.predict_trajectory_init() //start trajectory
 function animate() {
 
     const { x, y, theta, vx, vy,ax,ay,moonx, moony,dt } = STEP.step();
-    pod.position.x = x;
-    pod.position.y = y;
-    pod.rotation.z = -Math.PI / 2 + theta
-    earth.rotation.y += 0.002;
+    POD.pod.position.x = x;
+    POD.pod.position.y = y;
+    POD.pod.rotation.z = -Math.PI / 2 + theta
+    PLANETS.earth.rotation.y += 0.002;
 
 
-    moon.position.x = moonx
-    moon.position.y = moony
+    PLANETS.moon.position.x = moonx
+    PLANETS.moon.position.y = moony
 
     // Update HUD
-    updateTelemetry({vx,vy,ax,ay,dt})
+    UI.updateTelemetry({vx,vy,ax,ay,dt})
 
     // velocity vector
     const vVec = new THREE.Vector3(vx, vy, 0);
@@ -112,7 +112,7 @@ function animate() {
     // scale arrow length = 2*speed // just a scale
     velArrow.setLength(2 * vVec.length());
 
-    if (PATH.autoPredict) {
+    if (UI.autoPredict) {
         PATH.trajectory_UI_update();
     }
 

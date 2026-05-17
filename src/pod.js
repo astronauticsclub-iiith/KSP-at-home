@@ -22,3 +22,24 @@ pod.scale.set(0.5, 0.5, 0.5);
 
 export {pod};
 
+// Pod Trajectory Prediction
+import {pathLen} from './trajectory.js'
+
+export const trajectory_Geometry = new THREE.BufferGeometry();
+const trajectory_Material = new THREE.PointsMaterial({
+    color: 0x00ff00,
+    size: 0.5,
+    sizeAttenuation: false
+});
+
+// intialize attibutes to pick up from
+const positions = new Float32Array(pathLen * 3);
+
+trajectory_Geometry.setAttribute(
+    'position',
+    new THREE.BufferAttribute(positions, 3)
+);
+
+const trajectory = new THREE.Points(trajectory_Geometry, trajectory_Material);
+export { trajectory }
+

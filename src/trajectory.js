@@ -1,28 +1,7 @@
 import * as MAN from './maneuver.js'
-import * as THREE from 'three'
+import * as POD from './pod.js'
 
-const pathLen = 2000; // predict trajectory 2000 steps ahead
-
-// -----------Trajectory Graphics------------
-const trajectory_Geometry = new THREE.BufferGeometry();
-const trajectory_Material = new THREE.PointsMaterial({
-    color: 0x00ff00,
-    size: 0.5,
-    sizeAttenuation: false
-});
-
-// intialize attibutes to pick up from
-const positions = new Float32Array(pathLen * 3);
-
-trajectory_Geometry.setAttribute(
-    'position',
-    new THREE.BufferAttribute(positions, 3)
-);
-
-const trajectory = new THREE.Points(trajectory_Geometry, trajectory_Material);
-export { trajectory }
-
-//------------------------
+export const pathLen = 2000; // predict trajectory 2000 steps ahead
 
 export let sim_pos = [];
 
@@ -66,16 +45,14 @@ export function predict_trajectory_init() {
  * @returns {void}
  */
 export function trajectory_UI_update() {
-    const attr = trajectory_Geometry.attributes.position;
+    const attr = POD.trajectory_Geometry.attributes.position;
 
     if (!sim_pos || sim_pos.length === 0) {
-        trajectory_Geometry.setDrawRange(0, 0);
+        POD.trajectory_Geometry.setDrawRange(0, 0);
         attr.needsUpdate = true;
         return;
     }
 
-
-    sim_pos = [];
     predict_trajectory_init();
 
     const count = Math.min(sim_pos.length, pathLen);
@@ -86,29 +63,7 @@ export function trajectory_UI_update() {
         attr.array[i * 3 + 2] = 0;
     }
 
-    trajectory_Geometry.setDrawRange(0, count);
+    POD.trajectory_Geometry.setDrawRange(0, count);
 
     attr.needsUpdate = true;
 }
-
-
-// ---------UI update----------
-
-export let autoPredict = false;
-const tra_btn = document.getElementById('predict');
-
-tra_btn.addEventListener('click', () => {
-
-    autoPredict = !autoPredict;
-
-    if (autoPredict) {
-        tra_btn.innerText = 'Stop Prediction';
-    }
-    else {
-        tra_btn.innerText = 'Predict Trajectory';
-        const attr = trajectory_Geometry.attributes.position;
-        trajectory_Geometry.setDrawRange(0, 0);
-        attr.needsUpdate=true;
-
-    }
-});

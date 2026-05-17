@@ -13,6 +13,8 @@ export function updateTelemetry({ vx, vy, ax, ay, dt }) {
 //Buttons
 import {controls } from "./maneuver";
 
+// Prograde and Retrograde buttons
+
 const probtn = document.getElementById('prograde');
 probtn.addEventListener('pointerdown', (event) => {
     controls.prograding = true;
@@ -31,3 +33,25 @@ retrobtn.addEventListener('pointerdown', (event) => {
 retrobtn.addEventListener('pointerup', (event) => {
     controls.retrograding = false;
 })
+
+// Trajectory btn
+import {trajectory_Geometry} from './pod.js'
+
+export let autoPredict = false;
+const tra_btn = document.getElementById('predict');
+
+tra_btn.addEventListener('click', () => {
+
+    autoPredict = !autoPredict;
+
+    if (autoPredict) {
+        tra_btn.innerText = 'Stop Prediction';
+    }
+    else {
+        tra_btn.innerText = 'Predict Trajectory';
+        const attr = trajectory_Geometry.attributes.position;
+        trajectory_Geometry.setDrawRange(0, 0);
+        attr.needsUpdate=true;
+
+    }
+});

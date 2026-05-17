@@ -16,26 +16,32 @@ gui.add(params, 'moonMass', 0.01, 1, 0.01).onChange(v => bodies.moon.m = v); // 
 
 
 let r = { x: -3, y: -2, z: 0 } // postion and velocities
-let v = { x: 1 / Math.sqrt(2), y: 0, z: 0 }
+let v = { x: 1 / Math.sqrt(2), y: 0, z: 0 } //start with a stable orbital velocity
+
 let R = 15 //distance between earth and moon
+
 let bodies = {
     earth: { m: 1, pos: { x: -3, y: -4, z: 0 } },
     moon: { m: params.moonMass, pos: { x: 6, y: 8, z: 0 } },
     sun: { m: 0, pos: { x: -20, y: 0, z: 1 } } // mass of sun dosent matter 
-
+    
 } //artifically increase moons pull for now
+
 export { bodies }
 export { r, v };
+
+export const controls = {
+    retrograding: false,
+    prograding: false
+};
 
 function distance(x1, y1, x2, y2) {
     return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 }
 
 export function acc(pos) {
-
     let ax = 0;
     let ay = 0;
-
     for (const body of Object.values(bodies)) {
         if (body.m == 0) { continue; }
         const dx = body.pos.x - pos.x;
@@ -48,17 +54,12 @@ export function acc(pos) {
         ax += factor * dx;
         ay += factor * dy;
     }
-
     return { ax, ay };
 }
 
-export const controls = {
-    retrograding: false,
-    prograding: false
-};
-let omega = 0;
 
-// Implementing velocity verlet algorithm which is a symplectic integrator
+let omega = 0; // moons rotation around the sun
+
 
 /**
  * Advances the spacecraft simulation by one timestep
@@ -113,11 +114,11 @@ export function step() {
         theta: theta,
         vx: v.x,
         vy: v.y,
-        ax:ax_new,
-        ay:ay_new,
+        ax: ax_new,
+        ay: ay_new,
         moonx: bodies.moon.pos.x,
         moony: bodies.moon.pos.y,
-        dt:params.dt
+        dt: params.dt
     };
 }
 
