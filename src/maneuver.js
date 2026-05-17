@@ -1,6 +1,6 @@
 import GUI from 'lil-gui'
 
-const params = {
+export const params = {
     G: 1, // Graviational constant in ARBITRARY UNITS
     dt: 0.03, // TIME SCALE
     moonMass: 20 / 81,
@@ -52,14 +52,11 @@ export function acc(pos) {
     return { ax, ay };
 }
 
-let prograding = false;
-let retrograding = false;
-
+export const controls = {
+    retrograding: false,
+    prograding: false
+};
 let omega = 0;
-
-//UI little bit
-let vel = document.getElementById('velocity');
-let accn = document.getElementById('acceleration');
 
 // Implementing velocity verlet algorithm which is a symplectic integrator
 
@@ -88,22 +85,20 @@ export function step() {
 
     // new accn
     const { ax: ax_new, ay: ay_new } = acc(r);
-    accn.innerText = Math.sqrt(ax_new ** 2 + ay_new ** 2).toFixed(2);
 
     // velocity update
     v.x += 0.5 * (ax_old + ax_new) * params.dt;
     v.y += 0.5 * (ay_old + ay_new) * params.dt;
-    vel.innerText = Math.sqrt(v.x ** 2 + v.y ** 2).toFixed(2)
 
     // orientation
     const theta = Math.atan2(v.y, v.x);
 
     // prograde retrograde upgrade
-    if (prograding == true) {
+    if (controls.prograding == true) {
         prograde();
 
     }
-    if (retrograding == true) {
+    if (controls.retrograding == true) {
         retrograde();
     }
 
@@ -118,23 +113,25 @@ export function step() {
         theta: theta,
         vx: v.x,
         vy: v.y,
+        ax:ax_new,
+        ay:ay_new,
         moonx: bodies.moon.pos.x,
-        moony: bodies.moon.pos.y
+        moony: bodies.moon.pos.y,
+        dt:params.dt
     };
 }
 
 // Prograde and Retrograde 
-export let update_trajectory_prediction = false;
 
 let dv = 0.01;
-function prograde() {
+export function prograde() {
 
     const speed =
         Math.sqrt(v.x ** 2 + v.y ** 2);
     v.x += dv * (v.x / speed);
     v.y += dv * (v.y / speed);
 }
-function retrograde() {
+export function retrograde() {
 
     const speed =
         Math.sqrt(v.x ** 2 + v.y ** 2);
@@ -142,29 +139,3 @@ function retrograde() {
     v.x -= dv * (v.x / speed);
     v.y -= dv * (v.y / speed);
 }
-
-// UI
-const probtn = document.getElementById('prograde');
-probtn.addEventListener('pointerdown', (event) => {
-    prograding = true;
-    update_trajectory_prediction = true;
-})
-
-probtn.addEventListener('pointerup', (event) => {
-    prograding = false;
-    update_trajectory_prediction = false;
-
-})
-
-
-const retrobtn = document.getElementById('retrograde');
-retrobtn.addEventListener('pointerdown', (event) => {
-    retrograding = true;
-    update_trajectory_prediction = true;
-})
-
-retrobtn.addEventListener('pointerup', (event) => {
-    retrograding = false;
-    update_trajectory_prediction = false;
-})
-

@@ -42,13 +42,13 @@ export function predict_trajectory_init() {
 
         const { ax: ax_old, ay: ay_old } = MAN.acc(pseudo_r);
 
-        pseudo_r.x += pseudo_v.x * 0.03 + 0.5 * ax_old * 0.03 * 0.03;
-        pseudo_r.y += pseudo_v.y * 0.03 + 0.5 * ay_old * 0.03 * 0.03;
+        pseudo_r.x += pseudo_v.x * MAN.params.dt + 0.5 * ax_old * (MAN.params.dt**2);
+        pseudo_r.y += pseudo_v.y * MAN.params.dt + 0.5 * ay_old * (MAN.params.dt **2);
 
         const { ax: ax_new, ay: ay_new } = MAN.acc(pseudo_r);
 
-        pseudo_v.x += 0.5 * (ax_old + ax_new) * 0.03;
-        pseudo_v.y += 0.5 * (ay_old + ay_new) * 0.03;
+        pseudo_v.x += 0.5 * (ax_old + ax_new) * MAN.params.dt;
+        pseudo_v.y += 0.5 * (ay_old + ay_new) * MAN.params.dt;
 
         sim_pos.push({
             x: pseudo_r.x,
@@ -65,7 +65,7 @@ export function predict_trajectory_init() {
  *
  * @returns {void}
  */
-export function trajecotry_UI_update() {
+export function trajectory_UI_update() {
     const attr = trajectory_Geometry.attributes.position;
 
     if (!sim_pos || sim_pos.length === 0) {

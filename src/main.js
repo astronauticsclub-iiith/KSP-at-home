@@ -1,5 +1,7 @@
-import * as THREE from'three';
-import './styles.css'
+import * as THREE from 'three';
+import './styles.css';
+import { updateTelemetry } from './ui.js';
+
 const scene = new THREE.Scene()
 
 
@@ -28,8 +30,8 @@ renderer.shadowMap.type = THREE.PCFShadowMap;
 import { earth } from './planets.js';
 import { pod } from './pod.js';
 import { moon } from './planets.js'
-import {sun} from './planets.js'
-import { trajectory} from './path.js';
+import { sun } from './planets.js'
+import { trajectory } from './path.js';
 scene.add(pod)
 scene.add(earth);
 scene.add(moon);
@@ -77,7 +79,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableRotate = false;  //2D only
-controls.enableDamping = true; 
+controls.enableDamping = true;
 controls.zoomToCursor = true;
 
 
@@ -85,15 +87,18 @@ PATH.predict_trajectory_init() //start trajectory
 //animation loop
 function animate() {
 
-    const { x, y, theta, vx, vy,moonx,moony } = STEP.step();
+    const { x, y, theta, vx, vy,ax,ay,moonx, moony,dt } = STEP.step();
     pod.position.x = x;
     pod.position.y = y;
     pod.rotation.z = -Math.PI / 2 + theta
     earth.rotation.y += 0.002;
 
 
-    moon.position.x =moonx
-    moon.position.y =moony
+    moon.position.x = moonx
+    moon.position.y = moony
+
+    // Update HUD
+    updateTelemetry({vx,vy,ax,ay,dt})
 
     // velocity vector
     const vVec = new THREE.Vector3(vx, vy, 0);
@@ -105,10 +110,10 @@ function animate() {
     velArrow.setDirection(dir);
 
     // scale arrow length = 2*speed // just a scale
-    velArrow.setLength(2*vVec.length());
+    velArrow.setLength(2 * vVec.length());
 
-    if(PATH.autoPredict){
-        PATH.trajecotry_UI_update();
+    if (PATH.autoPredict) {
+        PATH.trajectory_UI_update();
     }
 
     controls.update();  //zoom update
