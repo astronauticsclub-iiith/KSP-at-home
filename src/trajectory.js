@@ -17,7 +17,39 @@ export function predict_trajectory_init() {
     let pseudo_r = { x: MAN.r.x, y: MAN.r.y, z: MAN.r.z };
     let pseudo_v = { x: MAN.v.x, y: MAN.v.y, z: MAN.v.z };
 
+    // Store previous states to detect cycles
+    const previousStates = [];
+
     for (let i = 0; i < pathLen; i++) {
+
+        // store all current stats
+        const currentState = {
+            rx: pseudo_r.x,
+            ry: pseudo_r.y,
+            rz: pseudo_r.z,
+            vx: pseudo_v.x,
+            vy: pseudo_v.y,
+            vz: pseudo_v.z
+        };
+
+        // if reaching a state match, no need to calculate further 
+        // (orbits, non degrading trajectories)
+        const stateExists = previousStates.some(state => 
+            state.rx === currentState.rx &&
+            state.ry === currentState.ry &&
+            state.rz === currentState.rz &&
+            state.vx === currentState.vx &&
+            state.vy === currentState.vy &&
+            state.vz === currentState.vz
+        );
+
+        if (stateExists) {
+            // State has been seen before, stop to prevent cycle
+            break;
+        }
+
+        // Store current state
+        previousStates.push(currentState);
 
         const { ax: ax_old, ay: ay_old } = MAN.acc(pseudo_r);
 
