@@ -2,6 +2,7 @@ import * as MAN from './maneuver.js'
 import * as POD from './pod.js'
 
 export const pathLen = 2000; // predict trajectory 2000 steps ahead
+export const stateThreshold = 1e-5; // threshold for state comparison
 
 export let sim_pos = [];
 
@@ -35,12 +36,12 @@ export function predict_trajectory_init() {
         // if reaching a state match, no need to calculate further 
         // (orbits, non degrading trajectories)
         const stateExists = previousStates.some(state => 
-            state.rx === currentState.rx &&
-            state.ry === currentState.ry &&
-            state.rz === currentState.rz &&
-            state.vx === currentState.vx &&
-            state.vy === currentState.vy &&
-            state.vz === currentState.vz
+            Math.abs(state.rx - currentState.rx) < stateThreshold &&
+            Math.abs(state.ry - currentState.ry) < stateThreshold &&
+            Math.abs(state.rz - currentState.rz) < stateThreshold &&
+            Math.abs(state.vx - currentState.vx) < stateThreshold &&
+            Math.abs(state.vy - currentState.vy) < stateThreshold &&
+            Math.abs(state.vz - currentState.vz) < stateThreshold
         );
 
         if (stateExists) {
