@@ -18,7 +18,7 @@ gui.add(params, 'moonMass', 0.01, 1, 0.01).onChange(v => bodies.moon.m = v); // 
 let r = { x: -3, y: -2, z: 0 } // postion and velocities
 let v = { x: 1 / Math.sqrt(2), y: 0, z: 0 } //start with a stable orbital velocity
 
-let R = 15 //distance between earth and moon
+export let R = 15 //distance between earth and moon
 
 let bodies = {
     earth: { m: 1, pos: { x: -3, y: -4, z: 0 } },
@@ -39,10 +39,10 @@ function distance(x1, y1, x2, y2) {
     return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 }
 
-export function acc(pos) {
+export function acc(pos,objects_pos) {
     let ax = 0;
     let ay = 0;
-    for (const body of Object.values(bodies)) {
+    for (const body of Object.values(objects_pos)) {
         if (body.m == 0) { continue; }
         const dx = body.pos.x - pos.x;
         const dy = body.pos.y - pos.y;
@@ -58,7 +58,7 @@ export function acc(pos) {
 }
 
 
-let omega = 0; // moons rotation around the sun
+export let omega = 0; // moons rotation around the sun
 
 
 /**
@@ -78,14 +78,14 @@ let omega = 0; // moons rotation around the sun
 export function step() {
 
     // accn
-    const { ax: ax_old, ay: ay_old } = acc(r);
+    const { ax: ax_old, ay: ay_old } = acc(r,bodies);
 
     // position update
     r.x += v.x * params.dt + 0.5 * ax_old * params.dt * params.dt;
     r.y += v.y * params.dt + 0.5 * ay_old * params.dt * params.dt;
 
     // new accn
-    const { ax: ax_new, ay: ay_new } = acc(r);
+    const { ax: ax_new, ay: ay_new } = acc(r,bodies);
 
     // velocity update
     v.x += 0.5 * (ax_old + ax_new) * params.dt;
