@@ -1,5 +1,6 @@
 // This file is responsible for updating the HUD and UI
 
+//-----HUD----------
 const vel = document.getElementById('velocity');
 const accn = document.getElementById('acceleration');
 const time = document.getElementById('timestep');
@@ -10,7 +11,7 @@ export function updateTelemetry({ vx, vy, ax, ay, dt }) {
     time.innerText = dt;
 }
 
-//Buttons
+//--------Buttons----------
 import {controls } from "./maneuver";
 
 // Prograde and Retrograde buttons
