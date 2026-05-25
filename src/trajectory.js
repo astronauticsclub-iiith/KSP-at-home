@@ -2,6 +2,7 @@ import * as MAN from './maneuver.js'
 import * as POD from './pod.js'
 
 export const pathLen = 2000; // predict trajectory 2000 steps ahead
+export const stateThreshold = 1e-5; // threshold for state comparison
 
 export let sim_pos = [];
 
@@ -17,7 +18,39 @@ export function predict_trajectory_init() {
     let pseudo_r = { x: MAN.r.x, y: MAN.r.y, z: MAN.r.z };
     let pseudo_v = { x: MAN.v.x, y: MAN.v.y, z: MAN.v.z };
 
+    // Store previous states to detect cycles
+    const previousStates = [];
+
     for (let i = 0; i < pathLen; i++) {
+
+        // store all current stats
+        const currentState = {
+            rx: pseudo_r.x,
+            ry: pseudo_r.y,
+            rz: pseudo_r.z,
+            vx: pseudo_v.x,
+            vy: pseudo_v.y,
+            vz: pseudo_v.z
+        };
+
+        // if reaching a state match, no need to calculate further 
+        // (orbits, non degrading trajectories)
+        const stateExists = previousStates.some(state => 
+            Math.abs(state.rx - currentState.rx) < stateThreshold &&
+            Math.abs(state.ry - currentState.ry) < stateThreshold &&
+            Math.abs(state.rz - currentState.rz) < stateThreshold &&
+            Math.abs(state.vx - currentState.vx) < stateThreshold &&
+            Math.abs(state.vy - currentState.vy) < stateThreshold &&
+            Math.abs(state.vz - currentState.vz) < stateThreshold
+        );
+
+        if (stateExists) {
+            // State has been seen before, stop to prevent cycle
+            break;
+        }
+
+        // Store current state
+        previousStates.push(currentState);
 
         const { ax: ax_old, ay: ay_old } = MAN.acc(pseudo_r);
 
