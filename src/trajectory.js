@@ -1,6 +1,6 @@
-import * as MAN from './maneuver.js'
-import * as POD from './pod.js'
-import * as PARAMS from './control_params.js'
+import * as MAN from './maneuver.js';
+import * as POD from './pod.js';
+import * as PARAMS from './control_params.js';
 
 export const pathLen = 2000; // predict trajectory 2000 steps ahead
 export const stateThreshold = 1e-5; // threshold for state comparison
@@ -13,7 +13,6 @@ export let sim_pos = [];
  * @returns {void}
  */
 export function predict_trajectory_init() {
-
     sim_pos = [];
 
     let pseudo_r = { x: PARAMS.r.x, y: PARAMS.r.y, z: PARAMS.r.z };
@@ -21,19 +20,24 @@ export function predict_trajectory_init() {
 
     let pseudo_bodies = {
         earth: { m: 1, pos: { x: -3, y: -4, z: 0 } },
-        moon: { m: PARAMS.params.moonMass, pos: { x: PARAMS.bodies.moon.pos.x, y: PARAMS.bodies.moon.pos.y, z: PARAMS.bodies.moon.pos.z } },
-        sun: { m: 0, pos: { x: -20, y: 0, z: 1 } }
-
-    }
+        moon: {
+            m: PARAMS.params.moonMass,
+            pos: {
+                x: PARAMS.bodies.moon.pos.x,
+                y: PARAMS.bodies.moon.pos.y,
+                z: PARAMS.bodies.moon.pos.z,
+            },
+        },
+        sun: { m: 0, pos: { x: -20, y: 0, z: 1 } },
+    };
     let omega = MAN.omega;
     let R = PARAMS.R;
-    let dt=PARAMS.params.dt
+    let dt = PARAMS.params.dt;
 
     // Store previous states to detect cycles
     const previousStates = [];
 
     for (let i = 0; i < pathLen; i++) {
-
         // store all current stats
         const currentState = {
             rx: pseudo_r.x,
@@ -43,10 +47,10 @@ export function predict_trajectory_init() {
             vy: pseudo_v.y,
             vz: pseudo_v.z,
             moonx: pseudo_bodies.moon.pos.x,
-            moony: pseudo_bodies.moon.pos.y
+            moony: pseudo_bodies.moon.pos.y,
         };
 
-        //if reaching a state match, no need to calculate further 
+        //if reaching a state match, no need to calculate further
         //(orbits, non degrading trajectories)
         // const stateExists = previousStates.some(state =>
         //     Math.abs(state.rx - currentState.rx) < stateThreshold &&
@@ -68,26 +72,26 @@ export function predict_trajectory_init() {
 
         const { ax: ax_old, ay: ay_old } = MAN.acc(pseudo_r, pseudo_bodies);
 
-        pseudo_r.x += pseudo_v.x *dt + 0.5 * ax_old * (dt ** 2);
-        pseudo_r.y += pseudo_v.y *dt + 0.5 * ay_old * (dt ** 2);
+        pseudo_r.x += pseudo_v.x * dt + 0.5 * ax_old * dt ** 2;
+        pseudo_r.y += pseudo_v.y * dt + 0.5 * ay_old * dt ** 2;
 
         const { ax: ax_new, ay: ay_new } = MAN.acc(pseudo_r, pseudo_bodies);
 
-        pseudo_v.x += 0.5 * (ax_old + ax_new) *dt;
-        pseudo_v.y += 0.5 * (ay_old + ay_new) *dt;
+        pseudo_v.x += 0.5 * (ax_old + ax_new) * dt;
+        pseudo_v.y += 0.5 * (ay_old + ay_new) * dt;
 
         sim_pos.push({
             x: pseudo_r.x,
-            y: pseudo_r.y
+            y: pseudo_r.y,
         });
 
-        pseudo_bodies.moon.pos.x = pseudo_bodies.earth.pos.x + R * Math.cos(omega + Math.PI / 3);
-        pseudo_bodies.moon.pos.y = pseudo_bodies.earth.pos.y + R * Math.sin(omega + Math.PI / 3);
-        omega -= 0.0001
-
+        pseudo_bodies.moon.pos.x =
+            pseudo_bodies.earth.pos.x + R * Math.cos(omega + Math.PI / 3);
+        pseudo_bodies.moon.pos.y =
+            pseudo_bodies.earth.pos.y + R * Math.sin(omega + Math.PI / 3);
+        omega -= 0.0001;
     }
 }
-
 
 //Updating the GUI
 /**
