@@ -54,3 +54,10 @@ sun.position.x = bodies.sun.pos.x;
 sun.position.y = bodies.sun.pos.y;
 sun.position.z = bodies.sun.pos.z;
 export { sun }
+
+//sunlight
+const sunlight = new THREE.PointLight(0xffffff, 20);
+sunlight.decay = 0; // dosent look lit enough otherwise
+sunlight.position.copy(sun.position);
+sunlight.castShadow = true;
+export {sunlight}

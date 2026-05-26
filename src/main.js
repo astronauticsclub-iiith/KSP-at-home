@@ -1,10 +1,13 @@
-import * as THREE from 'three';
+import * as THREE from 'three'; // 3D objects API
 import * as PLANETS from './planets.js'
 import './styles.css';
 import * as UI from './ui.js'
 
-const scene = new THREE.Scene()
+import * as STEP from './maneuver.js'; // Orbit Equations and Animation loop
+import * as PATH from './trajectory.js' // trajectory prediction
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'; // add zoom features
 
+const scene = new THREE.Scene()
 
 // camera
 const camera = new THREE.PerspectiveCamera(
@@ -14,8 +17,7 @@ const camera = new THREE.PerspectiveCamera(
     1000
 );
 
-camera.position.z = 15;
-// camera.position.set(-5, 0, 0);
+camera.position.z = 15; // starting position
 camera.lookAt(0, 0, 0);
 
 // render
@@ -28,28 +30,23 @@ renderer.shadowMap.type = THREE.PCFShadowMap;
 
 
 //scene
-// import { pod } from './pod.js';
-// import { trajectory } from './trajectory.js';
 import * as POD from './pod.js'
-scene.add(POD.pod)
+
+//planets
 scene.add(PLANETS.earth);
 scene.add(PLANETS.moon);
 scene.add(PLANETS.sun);
+
+// pod
+scene.add(POD.pod)
 scene.add(POD.trajectory);
 
-// lights
+//sunlight
+scene.add(PLANETS.sunlight);
 
+// lights
 const ambient = new THREE.AmbientLight(0xffffff, 0.2);
 scene.add(ambient);
-
-//sunlight
-const sunlight = new THREE.PointLight(0xffffff, 20);
-sunlight.decay = 0; // dosent look lit enough otherwise
-sunlight.position.copy(PLANETS.sun.position);
-
-sunlight.castShadow = true;
-
-scene.add(sunlight);
 
 //background
 const loader = new THREE.TextureLoader();
@@ -58,11 +55,6 @@ loader.load("assets/bg.webp", (texture) => {
     scene.background = texture;
 });
 
-// Orbit Equations and Animation loop
-import * as STEP from './maneuver.js';
-
-// trajectory prediction
-import * as PATH from './trajectory.js'
 
 // velocity vectors
 
@@ -74,8 +66,6 @@ const velArrow = new THREE.ArrowHelper(dir, origin, length, color);
 scene.add(velArrow);
 
 //add zoom features
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableRotate = false;  //2D only
 controls.enableDamping = true;
@@ -87,6 +77,7 @@ PATH.predict_trajectory_init() //start trajectory
 function animate() {
 
     const { x, y, theta, vx, vy,ax,ay,moonx, moony,dt } = STEP.step();
+
     POD.pod.position.x = x;
     POD.pod.position.y = y;
     POD.pod.rotation.z = -Math.PI / 2 + theta
@@ -101,16 +92,12 @@ function animate() {
 
     // velocity vector
     const vVec = new THREE.Vector3(vx, vy, 0);
-
-    // set arrow direction (must be normalized)
     const dir = vVec.clone().normalize();
-
     velArrow.position.set(x, y, 0);
     velArrow.setDirection(dir);
+    velArrow.setLength(2 * vVec.length()); // scale arrow length = 2*speed (just a scale)
 
-    // scale arrow length = 2*speed // just a scale
-    velArrow.setLength(2 * vVec.length());
-
+    
     if (UI.autoPredict) {
         PATH.trajectory_UI_update();
     }
