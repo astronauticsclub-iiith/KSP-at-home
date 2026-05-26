@@ -17,20 +17,20 @@ import { controls } from './maneuver';
 // Prograde and Retrograde buttons
 
 const probtn = document.getElementById('prograde');
-probtn.addEventListener('pointerdown', (event) => {
+probtn.addEventListener('pointerdown', () => {
     controls.prograding = true;
 });
 
-probtn.addEventListener('pointerup', (event) => {
+probtn.addEventListener('pointerup', () => {
     controls.prograding = false;
 });
 
 const retrobtn = document.getElementById('retrograde');
-retrobtn.addEventListener('pointerdown', (event) => {
+retrobtn.addEventListener('pointerdown', () => {
     controls.retrograding = true;
 });
 
-retrobtn.addEventListener('pointerup', (event) => {
+retrobtn.addEventListener('pointerup', () => {
     controls.retrograding = false;
 });
 
