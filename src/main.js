@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import * as PLANETS from './planets.js'
 import './styles.css';
-// import { updateTelemetry } from './ui.js';
 import * as UI from './ui.js'
 
 const scene = new THREE.Scene()

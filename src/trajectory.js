@@ -1,5 +1,6 @@
 import * as MAN from './maneuver.js'
 import * as POD from './pod.js'
+import * as PARAMS from './control_params.js'
 
 export const pathLen = 2000; // predict trajectory 2000 steps ahead
 export const stateThreshold = 1e-5; // threshold for state comparison
@@ -15,17 +16,18 @@ export function predict_trajectory_init() {
 
     sim_pos = [];
 
-    let pseudo_r = { x: MAN.r.x, y: MAN.r.y, z: MAN.r.z };
-    let pseudo_v = { x: MAN.v.x, y: MAN.v.y, z: MAN.v.z };
+    let pseudo_r = { x: PARAMS.r.x, y: PARAMS.r.y, z: PARAMS.r.z };
+    let pseudo_v = { x: PARAMS.v.x, y: PARAMS.v.y, z: PARAMS.v.z };
 
     let pseudo_bodies = {
         earth: { m: 1, pos: { x: -3, y: -4, z: 0 } },
-        moon: { m: MAN.params.moonMass, pos: { x: MAN.bodies.moon.pos.x, y: MAN.bodies.moon.pos.y, z: MAN.bodies.moon.pos.z } },
+        moon: { m: PARAMS.params.moonMass, pos: { x: PARAMS.bodies.moon.pos.x, y: PARAMS.bodies.moon.pos.y, z: PARAMS.bodies.moon.pos.z } },
         sun: { m: 0, pos: { x: -20, y: 0, z: 1 } }
 
     }
     let omega = MAN.omega;
-    let R = MAN.R;
+    let R = PARAMS.R;
+    let dt=PARAMS.params.dt
 
     // Store previous states to detect cycles
     const previousStates = [];
@@ -66,13 +68,13 @@ export function predict_trajectory_init() {
 
         const { ax: ax_old, ay: ay_old } = MAN.acc(pseudo_r, pseudo_bodies);
 
-        pseudo_r.x += pseudo_v.x * MAN.params.dt + 0.5 * ax_old * (MAN.params.dt ** 2);
-        pseudo_r.y += pseudo_v.y * MAN.params.dt + 0.5 * ay_old * (MAN.params.dt ** 2);
+        pseudo_r.x += pseudo_v.x *dt + 0.5 * ax_old * (dt ** 2);
+        pseudo_r.y += pseudo_v.y *dt + 0.5 * ay_old * (dt ** 2);
 
         const { ax: ax_new, ay: ay_new } = MAN.acc(pseudo_r, pseudo_bodies);
 
-        pseudo_v.x += 0.5 * (ax_old + ax_new) * MAN.params.dt;
-        pseudo_v.y += 0.5 * (ay_old + ay_new) * MAN.params.dt;
+        pseudo_v.x += 0.5 * (ax_old + ax_new) *dt;
+        pseudo_v.y += 0.5 * (ay_old + ay_new) *dt;
 
         sim_pos.push({
             x: pseudo_r.x,

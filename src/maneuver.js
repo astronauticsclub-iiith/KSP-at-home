@@ -1,34 +1,4 @@
-import GUI from 'lil-gui'
-
-export const params = {
-    G: 1, // Graviational constant in ARBITRARY UNITS
-    dt: 0.03, // TIME SCALE
-    moonMass: 20 / 81,
-};
-
-const gui = new GUI();
-
-gui.add(params, 'G', 0, 20, 0.1);
-
-gui.add(params, 'dt', 0.001, 0.05, 0.001);
-
-gui.add(params, 'moonMass', 0.01, 1, 0.01).onChange(v => bodies.moon.m = v); // mass of earth is 1
-
-
-let r = { x: -3, y: -2, z: 0 } // postion and velocities
-let v = { x: 1 / Math.sqrt(2), y: 0, z: 0 } //start with a stable orbital velocity
-
-export let R = 15 //distance between earth and moon
-
-let bodies = {
-    earth: { m: 1, pos: { x: -3, y: -4, z: 0 } },
-    moon: { m: params.moonMass, pos: { x: 6, y: 8, z: 0 } },
-    sun: { m: 0, pos: { x: -20, y: 0, z: 1 } } // mass of sun dosent matter 
-    
-} //artifically increase moons pull for now
-
-export { bodies }
-export { r, v };
+import * as PARAMS from './control_params'
 
 export const controls = {
     retrograding: false,
@@ -49,7 +19,7 @@ export function acc(pos,objects_pos) {
 
         const dist = distance(body.pos.x, body.pos.y, pos.x, pos.y);
 
-        const factor = params.G * body.m / (dist ** 3);
+        const factor = PARAMS.params.G * body.m / (dist ** 3);
 
         ax += factor * dx;
         ay += factor * dy;
@@ -59,6 +29,12 @@ export function acc(pos,objects_pos) {
 
 
 export let omega = 0; // moons rotation around the sun
+
+let r=PARAMS.r
+let v=PARAMS.v
+let bodies=PARAMS.bodies
+let dt=PARAMS.params.dt
+let R=PARAMS.R
 
 
 /**
@@ -81,15 +57,15 @@ export function step() {
     const { ax: ax_old, ay: ay_old } = acc(r,bodies);
 
     // position update
-    r.x += v.x * params.dt + 0.5 * ax_old * params.dt * params.dt;
-    r.y += v.y * params.dt + 0.5 * ay_old * params.dt * params.dt;
+    r.x += v.x *dt + 0.5 * ax_old *(dt)**2;
+    r.y += v.y *dt + 0.5 * ay_old *(dt)**2;
 
     // new accn
     const { ax: ax_new, ay: ay_new } = acc(r,bodies);
 
     // velocity update
-    v.x += 0.5 * (ax_old + ax_new) * params.dt;
-    v.y += 0.5 * (ay_old + ay_new) * params.dt;
+    v.x += 0.5 * (ax_old + ax_new) *dt;
+    v.y += 0.5 * (ay_old + ay_new) *dt;
 
     // orientation
     const theta = Math.atan2(v.y, v.x);
@@ -118,7 +94,7 @@ export function step() {
         ay: ay_new,
         moonx: bodies.moon.pos.x,
         moony: bodies.moon.pos.y,
-        dt: params.dt
+        dt:dt
     };
 }
 

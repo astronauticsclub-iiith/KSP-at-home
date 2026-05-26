@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { bodies } from './maneuver.js'
+import { bodies } from './control_params.js'
 
 const loader = new THREE.TextureLoader();
 
