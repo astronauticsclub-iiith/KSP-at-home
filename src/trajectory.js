@@ -1,84 +1,90 @@
 import * as MAN from './maneuver.js'
 import * as POD from './pod.js'
 
-export const pathLen = 2000; // predict trajectory 2000 steps ahead
-export const stateThreshold = 1e-5; // threshold for state comparison
-
 export let sim_pos = [];
 
+const R = 15;            // Earth-Moon orbital radius (must match maneuver.js)
+const EARTH_RADIUS = 1.05;
+const MOON_RADIUS  = 0.42;
+
 /**
- * Predicts future spacecraft positions and stores them in sim_pos.
+ * Predicts future spacecraft positions.
  *
- * @returns {void}
+ * KEY FIX vs old version: we simulate the moon's orbit (pseudo_omega advances
+ * by -0.0001 each step) so the gravity used at each step matches where the moon
+ * will actually be. The old code held the moon fixed, causing the predicted path
+ * to diverge from reality whenever the moon's gravity mattered.
  */
 export function predict_trajectory_init() {
-
     sim_pos = [];
+
+    if (MAN.crashState.crashed) return;
 
     let pseudo_r = { x: MAN.r.x, y: MAN.r.y, z: MAN.r.z };
     let pseudo_v = { x: MAN.v.x, y: MAN.v.y, z: MAN.v.z };
+    let pseudo_omega = MAN.moonState.omega; // start from current moon angle
+    let pseudo_fuel = MAN.rocketParams.fuelMass;
 
-    // Store previous states to detect cycles
-    const previousStates = [];
+    const steps = Math.min(MAN.params.pathSteps, POD.pathLen);
+    const dt = MAN.params.dt;
 
-    for (let i = 0; i < pathLen; i++) {
+    for (let i = 0; i < steps; i++) {
 
-        // store all current stats
-        const currentState = {
-            rx: pseudo_r.x,
-            ry: pseudo_r.y,
-            rz: pseudo_r.z,
-            vx: pseudo_v.x,
-            vy: pseudo_v.y,
-            vz: pseudo_v.z
+        // ── Moon position at this prediction step ────────────────────────────
+        const moonPos = {
+            x: MAN.bodies.earth.pos.x + R * Math.cos(pseudo_omega + Math.PI / 3),
+            y: MAN.bodies.earth.pos.y + R * Math.sin(pseudo_omega + Math.PI / 3),
         };
 
-        // if reaching a state match, no need to calculate further 
-        // (orbits, non degrading trajectories)
-        const stateExists = previousStates.some(state => 
-            Math.abs(state.rx - currentState.rx) < stateThreshold &&
-            Math.abs(state.ry - currentState.ry) < stateThreshold &&
-            Math.abs(state.rz - currentState.rz) < stateThreshold &&
-            Math.abs(state.vx - currentState.vx) < stateThreshold &&
-            Math.abs(state.vy - currentState.vy) < stateThreshold &&
-            Math.abs(state.vz - currentState.vz) < stateThreshold
-        );
+        const { ax: ax_old, ay: ay_old } = MAN.accWithMoonPos(pseudo_r, moonPos);
 
-        if (stateExists) {
-            // State has been seen before, stop to prevent cycle
-            break;
+        // Position update (Velocity Verlet step 1)
+        pseudo_r.x += pseudo_v.x * dt + 0.5 * ax_old * dt ** 2;
+        pseudo_r.y += pseudo_v.y * dt + 0.5 * ay_old * dt ** 2;
+
+        const { ax: ax_new, ay: ay_new } = MAN.accWithMoonPos(pseudo_r, moonPos);
+
+        // Velocity update (Velocity Verlet step 2)
+        pseudo_v.x += 0.5 * (ax_old + ax_new) * dt;
+        pseudo_v.y += 0.5 * (ay_old + ay_new) * dt;
+
+        // Engine burns are part of the live step, so include them here too.
+        const burnDirection = MAN.controls.prograding ? 1 : MAN.controls.retrograding ? -1 : 0;
+        if (burnDirection !== 0 && pseudo_fuel > 0) {
+            const speed = Math.hypot(pseudo_v.x, pseudo_v.y);
+            if (speed > 0) {
+                const fuelUsed = (MAN.rocketParams.thrust / Math.max(MAN.rocketParams.Isp, 1)) * dt;
+                pseudo_fuel = Math.max(0, pseudo_fuel - fuelUsed);
+                const mass = MAN.rocketParams.dryMass + pseudo_fuel;
+                if (mass > 0) {
+                    const dv = (MAN.rocketParams.thrust / mass) * dt;
+                    pseudo_v.x += burnDirection * dv * (pseudo_v.x / speed);
+                    pseudo_v.y += burnDirection * dv * (pseudo_v.y / speed);
+                }
+            }
         }
 
-        // Store current state
-        previousStates.push(currentState);
+        // Advance the moon once per predicted step, matching the live integrator.
+        pseudo_omega -= 0.0001;
 
-        const { ax: ax_old, ay: ay_old } = MAN.acc(pseudo_r);
+        sim_pos.push({ x: pseudo_r.x, y: pseudo_r.y });
 
-        pseudo_r.x += pseudo_v.x * MAN.params.dt + 0.5 * ax_old * (MAN.params.dt**2);
-        pseudo_r.y += pseudo_v.y * MAN.params.dt + 0.5 * ay_old * (MAN.params.dt **2);
-
-        const { ax: ax_new, ay: ay_new } = MAN.acc(pseudo_r);
-
-        pseudo_v.x += 0.5 * (ax_old + ax_new) * MAN.params.dt;
-        pseudo_v.y += 0.5 * (ay_old + ay_new) * MAN.params.dt;
-
-        sim_pos.push({
-            x: pseudo_r.x,
-            y: pseudo_r.y
-        });
+        // Stop prediction if the spacecraft would crash
+        const moonX = MAN.bodies.earth.pos.x + R * Math.cos(pseudo_omega + Math.PI / 3);
+        const moonY = MAN.bodies.earth.pos.y + R * Math.sin(pseudo_omega + Math.PI / 3);
+        const earthDist = Math.hypot(pseudo_r.x - MAN.bodies.earth.pos.x, pseudo_r.y - MAN.bodies.earth.pos.y);
+        const moonDist  = Math.hypot(pseudo_r.x - moonX,                  pseudo_r.y - moonY);
+        if (earthDist < EARTH_RADIUS || moonDist < MOON_RADIUS) break;
     }
 }
 
-
-//Updating the GUI
 /**
- * Updates the trajectory render buffer using
- * the current predicted trajectory positions.
- *
- * @returns {void}
+ * Recomputes the prediction and pushes it into the GPU buffer.
  */
 export function trajectory_UI_update() {
     const attr = POD.trajectory_Geometry.attributes.position;
+
+    predict_trajectory_init();
 
     if (!sim_pos || sim_pos.length === 0) {
         POD.trajectory_Geometry.setDrawRange(0, 0);
@@ -86,17 +92,13 @@ export function trajectory_UI_update() {
         return;
     }
 
-    predict_trajectory_init();
-
-    const count = Math.min(sim_pos.length, pathLen);
-
+    const count = Math.min(sim_pos.length, POD.pathLen);
     for (let i = 0; i < count; i++) {
-        attr.array[i * 3] = sim_pos[i].x;
+        attr.array[i * 3]     = sim_pos[i].x;
         attr.array[i * 3 + 1] = sim_pos[i].y;
         attr.array[i * 3 + 2] = 0;
     }
 
     POD.trajectory_Geometry.setDrawRange(0, count);
-
     attr.needsUpdate = true;
 }

@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.0",
-    "lil-gui": "^0.21.0",
     "three": "^0.184.0"
   }
 }

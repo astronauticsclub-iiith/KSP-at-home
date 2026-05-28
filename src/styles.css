@@ -1,1 +1,712 @@
-@import "tailwindcss"
+@import "tailwindcss";
+
+:root {
+	--bg-primary: #000000;
+	--bg-secondary: #0a0a0a;
+	--panel-bg: rgba(10, 10, 10, 0.92);
+	--border: rgba(255, 255, 255, 0.08);
+	--text-primary: #e0e0e0;
+	--text-secondary: #707070;
+	--accent-nominal: #00e676;
+	--accent-danger: #ff5252;
+	--accent-info: #448aff;
+	--font-mono: "JetBrains Mono", "SF Mono", "Consolas", monospace;
+	--font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+html,
+body {
+	width: 100%;
+	height: 100%;
+}
+
+body.app-shell {
+	margin: 0;
+	overflow: hidden;
+	background: var(--bg-primary);
+	color: var(--text-primary);
+	font-family: var(--font-sans);
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+canvas {
+	display: block;
+}
+
+#scene-canvas {
+	position: fixed;
+	inset: 0;
+	z-index: 0;
+}
+
+/* ─── Landing Screen ─── */
+
+.landing-screen {
+	position: fixed;
+	inset: 0;
+	z-index: 20;
+	display: grid;
+	place-items: center;
+	padding: clamp(1rem, 3vw, 2.5rem);
+	transition: opacity 280ms ease, transform 280ms ease;
+}
+
+.landing-backdrop {
+	position: absolute;
+	inset: 0;
+	background: rgba(0, 0, 0, 0.85);
+}
+
+.landing-shell {
+	position: relative;
+	z-index: 1;
+	width: min(1100px, 100%);
+	display: grid;
+	grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+	gap: clamp(1rem, 3vw, 2rem);
+	align-items: center;
+}
+
+.landing-copy {
+	padding: clamp(1rem, 2vw, 1.5rem);
+}
+
+.eyebrow {
+	margin: 0 0 0.75rem;
+	color: var(--accent-nominal);
+	text-transform: uppercase;
+	letter-spacing: 0.25em;
+	font-size: 0.72rem;
+	font-family: var(--font-mono);
+}
+
+.landing-copy h1 {
+	margin: 0;
+	max-width: 14ch;
+	font-size: clamp(2.5rem, 5.5vw, 4.8rem);
+	font-weight: 600;
+	line-height: 0.95;
+	letter-spacing: -0.03em;
+	color: var(--text-primary);
+}
+
+.landing-lead {
+	max-width: 48ch;
+	margin: 1.2rem 0 0;
+	color: var(--text-secondary);
+	font-size: 0.92rem;
+	line-height: 1.6;
+}
+
+.landing-points {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.6rem;
+	margin-top: 1.25rem;
+}
+
+.landing-points span {
+	border: 1px solid var(--border);
+	background: transparent;
+	border-radius: 4px;
+	padding: 0.4rem 0.7rem;
+	color: var(--text-secondary);
+	font-size: 0.78rem;
+	font-family: var(--font-mono);
+}
+
+/* ─── Mission Card (Preflight Console) ─── */
+
+.mission-card {
+	position: relative;
+	padding: 1.25rem;
+	border-radius: 4px;
+	background: var(--panel-bg);
+	border: 1px solid var(--border);
+	overflow: hidden;
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.75rem 0.85rem;
+	max-height: calc(100vh - 2rem);
+}
+
+.mission-card>* {
+	position: relative;
+	z-index: 1;
+}
+
+.mission-card-header,
+.launch-button,
+.launch-note {
+	grid-column: 1 / -1;
+}
+
+.mission-card-header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 0.75rem;
+	margin-bottom: 0.75rem;
+	padding-bottom: 0.75rem;
+	border-bottom: 1px solid var(--border);
+}
+
+.mission-card-kicker {
+	text-transform: uppercase;
+	letter-spacing: 0.2em;
+	font-size: 0.7rem;
+	color: var(--text-secondary);
+	font-family: var(--font-mono);
+}
+
+/* ─── Status Pills ─── */
+
+.status-pill {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 1.75rem;
+	padding: 0 0.65rem;
+	border-radius: 3px;
+	font-size: 0.68rem;
+	font-family: var(--font-mono);
+	text-transform: uppercase;
+	letter-spacing: 0.15em;
+}
+
+.status-pill-ready {
+	color: var(--accent-nominal);
+	background: rgba(0, 230, 118, 0.08);
+	border: 1px solid rgba(0, 230, 118, 0.2);
+}
+
+.status-crashed {
+	color: var(--accent-danger);
+	background: rgba(255, 82, 82, 0.08);
+	border: 1px solid rgba(255, 82, 82, 0.2);
+}
+
+.status-ok {
+	color: var(--accent-nominal);
+}
+
+.status-warn {
+	color: var(--accent-danger);
+}
+
+/* ─── Mission Fields ─── */
+
+.mission-field {
+	display: grid;
+	gap: 0.35rem;
+	margin-bottom: 0;
+}
+
+.mission-field span {
+	color: var(--text-secondary);
+	font-size: 0.75rem;
+	font-family: var(--font-mono);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+}
+
+.mission-field input {
+	width: 100%;
+	box-sizing: border-box;
+	border: 1px solid var(--border);
+	border-radius: 3px;
+	background: var(--bg-primary);
+	color: var(--text-primary);
+	padding: 0.55rem 0.7rem;
+	font-family: var(--font-mono);
+	font-size: 0.85rem;
+	outline: none;
+	transition: border-color 150ms ease;
+}
+
+.mission-field input:focus {
+	border-color: rgba(0, 230, 118, 0.4);
+}
+
+/* ─── Slider Fields (ui-components.js) ─── */
+
+.slider-field {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	grid-template-rows: auto auto;
+	gap: 0.25rem 0.75rem;
+	align-items: center;
+}
+
+.slider-field label {
+	grid-column: 1 / -1;
+	color: var(--text-secondary);
+	font-size: 0.72rem;
+	font-family: var(--font-mono);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+}
+
+.slider-field input[type="range"] {
+	grid-column: 1;
+	width: 100%;
+	height: 4px;
+	appearance: none;
+	background: rgba(255, 255, 255, 0.06);
+	border-radius: 2px;
+	outline: none;
+	cursor: pointer;
+}
+
+.slider-field input[type="range"]::-webkit-slider-thumb {
+	appearance: none;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	background: var(--accent-nominal);
+	border: none;
+	cursor: pointer;
+}
+
+.slider-field input[type="range"]::-moz-range-thumb {
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	background: var(--accent-nominal);
+	border: none;
+	cursor: pointer;
+}
+
+.slider-field input[type="range"]::-webkit-slider-runnable-track {
+	height: 4px;
+	border-radius: 2px;
+}
+
+.slider-field input[type="range"]::-moz-range-track {
+	height: 4px;
+	border-radius: 2px;
+	background: rgba(255, 255, 255, 0.06);
+}
+
+.slider-field .slider-readout {
+	grid-column: 2;
+	grid-row: 2;
+	min-width: 4ch;
+	text-align: right;
+	color: var(--text-primary);
+	font-family: var(--font-mono);
+	font-size: 0.82rem;
+	font-variant-numeric: tabular-nums;
+}
+
+/* ─── Buttons ─── */
+
+.launch-button,
+.control-button {
+	appearance: none;
+	border: 1px solid var(--border);
+	border-radius: 3px;
+	color: var(--text-primary);
+	background: var(--bg-primary);
+	font-family: var(--font-mono);
+	font-size: 0.78rem;
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	cursor: pointer;
+	transition: border-color 150ms ease, background 150ms ease;
+}
+
+.launch-button:hover,
+.control-button:hover {
+	border-color: rgba(255, 255, 255, 0.2);
+	background: rgba(255, 255, 255, 0.04);
+}
+
+.launch-button:active,
+.control-button:active {
+	background: rgba(255, 255, 255, 0.06);
+}
+
+.launch-button {
+	width: 100%;
+	margin-top: 0.5rem;
+	padding: 0.8rem 1rem;
+	font-weight: 600;
+	letter-spacing: 0.12em;
+	border-color: rgba(0, 230, 118, 0.3);
+	color: var(--accent-nominal);
+}
+
+.launch-button:hover {
+	border-color: rgba(0, 230, 118, 0.5);
+	background: rgba(0, 230, 118, 0.06);
+}
+
+.launch-note {
+	margin: 0.6rem 0 0;
+	color: var(--text-secondary);
+	font-size: 0.78rem;
+	line-height: 1.5;
+}
+
+/* ─── Flight UI ─── */
+
+.flight-ui {
+	opacity: 0;
+	transform: translateY(6px);
+	transition: opacity 240ms ease, transform 240ms ease;
+}
+
+.controls-panel {
+	position: absolute;
+	top: 1rem;
+	left: 1rem;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.control-button {
+	min-width: 10rem;
+	padding: 0.65rem 0.85rem;
+	font-weight: 600;
+}
+
+.control-button-subtle {
+	border-color: rgba(255, 255, 255, 0.05);
+	color: var(--text-secondary);
+}
+
+/* ─── Autopilot Controls ─── */
+
+.autopilot-controls {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	margin-top: 0.5rem;
+	padding-top: 0.5rem;
+	border-top: 1px solid var(--border);
+}
+
+.control-select {
+	appearance: none;
+	width: 100%;
+	min-width: 10rem;
+	padding: 0.55rem 0.75rem;
+	border: 1px solid var(--border);
+	border-radius: 3px;
+	background: var(--bg-primary);
+	color: var(--text-primary);
+	font-family: var(--font-mono);
+	font-size: 0.75rem;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	cursor: pointer;
+	outline: none;
+	transition: border-color 150ms ease;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23707070' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 0.6rem center;
+	padding-right: 2rem;
+}
+
+.control-select:hover {
+	border-color: rgba(255, 255, 255, 0.2);
+}
+
+.control-select:focus {
+	border-color: rgba(68, 138, 255, 0.5);
+}
+
+.control-select option {
+	background: var(--bg-primary);
+	color: var(--text-primary);
+}
+
+/* ─── Telemetry Panel ─── */
+
+.telemetry-panel {
+	position: absolute;
+	left: 1rem;
+	bottom: 1rem;
+	width: min(18rem, calc(100vw - 2rem));
+	padding: 0.85rem 1rem 1rem;
+	border-radius: 4px;
+	border: 1px solid var(--border);
+	background: var(--panel-bg);
+	font-family: var(--font-mono);
+	color: var(--text-primary);
+}
+
+.telemetry-title {
+	margin-bottom: 0.65rem;
+	padding-bottom: 0.5rem;
+	border-bottom: 1px solid var(--border);
+	letter-spacing: 0.15em;
+	text-transform: uppercase;
+	font-size: 0.7rem;
+	color: var(--text-secondary);
+}
+
+.telemetry-row {
+	display: flex;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-bottom: 0.25rem;
+	font-size: 0.78rem;
+	line-height: 1.6;
+	font-variant-numeric: tabular-nums;
+}
+
+.telemetry-row span:first-child {
+	color: var(--text-secondary);
+}
+
+.telemetry-row span:last-child {
+	color: var(--text-primary);
+	text-align: right;
+}
+
+/* ─── Fuel Bar ─── */
+
+.fuel-bar {
+	margin-top: 0.65rem;
+	height: 4px;
+	border-radius: 2px;
+	background: rgba(255, 255, 255, 0.06);
+	overflow: hidden;
+}
+
+.fuel-bar-fill {
+	width: 100%;
+	height: 100%;
+	border-radius: inherit;
+	background: var(--accent-nominal);
+	transition: width 180ms ease, background 180ms ease;
+}
+
+/* ─── Burn Indicator ─── */
+
+.burn-indicator {
+	min-height: 1rem;
+	margin-top: 0.6rem;
+	color: var(--accent-info);
+	font-size: 0.72rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	opacity: 0;
+	transition: opacity 150ms ease;
+}
+
+/* ─── Shortcuts Legend ─── */
+
+.shortcuts-legend {
+	margin-top: 0.75rem;
+	padding-top: 0.6rem;
+	border-top: 1px solid var(--border);
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem 0.75rem;
+	font-size: 0.68rem;
+	color: var(--text-secondary);
+}
+
+.shortcuts-legend span {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+}
+
+.shortcuts-legend kbd {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 1.4em;
+	padding: 0.15em 0.35em;
+	border: 1px solid var(--border);
+	border-radius: 3px;
+	background: rgba(255, 255, 255, 0.04);
+	font-family: var(--font-mono);
+	font-size: 0.72rem;
+	line-height: 1;
+	color: var(--text-primary);
+}
+
+/* ─── Slider Description ─── */
+
+.slider-description {
+	grid-column: 1 / -1;
+	color: var(--text-secondary);
+	font-size: 0.65rem;
+	font-family: var(--font-sans);
+	line-height: 1.4;
+	margin-bottom: 0.15rem;
+	opacity: 0.8;
+}
+
+/* ─── Crash Overlay ─── */
+
+.crash-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 50;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(0, 0, 0, 0.6);
+}
+
+.crash-overlay[hidden] {
+	display: none;
+}
+
+.crash-panel {
+	background: var(--panel-bg);
+	border: 1px solid var(--border);
+	border-radius: 4px;
+	padding: 2rem 2.5rem;
+	text-align: center;
+	max-width: 320px;
+	width: 100%;
+}
+
+.crash-icon {
+	font-size: 2.5rem;
+	margin-bottom: 0.75rem;
+}
+
+.crash-message {
+	font-family: var(--font-mono);
+	font-size: 1.25rem;
+	font-weight: 600;
+	color: var(--accent-danger);
+	text-transform: uppercase;
+	letter-spacing: 0.1em;
+	margin-bottom: 0.5rem;
+}
+
+.crash-target {
+	font-family: var(--font-mono);
+	font-size: 0.8rem;
+	color: var(--text-secondary);
+	margin-bottom: 1.25rem;
+}
+
+.crash-hint {
+	display: block;
+	margin-top: 0.75rem;
+	font-size: 0.72rem;
+	color: var(--text-secondary);
+	font-family: var(--font-mono);
+}
+
+.crash-hint kbd {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 1.4em;
+	padding: 0.15em 0.35em;
+	border: 1px solid var(--border);
+	border-radius: 3px;
+	background: rgba(255, 255, 255, 0.04);
+	font-family: var(--font-mono);
+	font-size: 0.72rem;
+	line-height: 1;
+	color: var(--text-primary);
+}
+
+/* ─── Mode Transitions ─── */
+
+body[data-mode="landing"] .flight-ui,
+body[data-mode="launching"] .flight-ui {
+	opacity: 0;
+	pointer-events: none;
+}
+
+body[data-mode="flight"] .flight-ui {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+body[data-mode="launching"] .landing-screen {
+	opacity: 0.85;
+}
+
+body[data-mode="flight"] .landing-screen {
+	opacity: 0;
+	pointer-events: none;
+	transform: translateY(-8px);
+}
+
+body[data-mode="landing"] .lil-gui,
+body[data-mode="launching"] .lil-gui {
+	opacity: 0;
+	pointer-events: none;
+}
+
+body[data-mode="flight"] .lil-gui {
+	opacity: 1;
+}
+
+/* ─── Flight Params Panel ─── */
+
+.flight-params-panel {
+	position: absolute;
+	top: 1rem;
+	right: 1rem;
+	width: min(16rem, calc(100vw - 2rem));
+	max-height: calc(100vh - 2rem);
+	overflow-y: auto;
+	padding: 0.85rem 1rem;
+	border-radius: 4px;
+	border: 1px solid var(--border);
+	background: var(--panel-bg);
+}
+
+.flight-params-title {
+	margin-bottom: 0.65rem;
+	padding-bottom: 0.5rem;
+	border-bottom: 1px solid var(--border);
+	letter-spacing: 0.15em;
+	text-transform: uppercase;
+	font-size: 0.7rem;
+	color: var(--text-secondary);
+	font-family: var(--font-mono);
+}
+
+.flight-params-panel .slider-field {
+	margin-bottom: 0.6rem;
+}
+
+/* ─── Responsive ─── */
+
+@media (max-width: 900px) {
+	.landing-shell {
+		grid-template-columns: 1fr;
+	}
+
+	.landing-copy h1 {
+		max-width: 100%;
+	}
+
+	.mission-card {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (max-width: 640px) {
+	.controls-panel {
+		left: 0.75rem;
+		top: 0.75rem;
+	}
+
+	.control-button {
+		min-width: 9rem;
+	}
+
+	.telemetry-panel {
+		left: 0.75rem;
+		bottom: 0.75rem;
+	}
+}

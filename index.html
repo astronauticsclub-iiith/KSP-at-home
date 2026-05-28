@@ -3,105 +3,188 @@
 
 <head>
   <title>KSP at Home</title>
-  <link rel="stylesheet" href="styles.css">
 </head>
-<style>
-  body {
-    margin: 0;
-    overflow: hidden;
-  }
 
-  canvas {
-    display: block;
-  }
+<body class="app-shell" data-mode="landing">
+  <canvas id="scene-canvas" aria-hidden="true"></canvas>
 
-  #ui {
-    position: absolute;
-    top: 2vh;
-    left: 2vw;
-    z-index: 10;
+  <main id="landing-screen" class="landing-screen">
+    <div class="landing-backdrop" aria-hidden="true"></div>
+    <section class="landing-shell">
+      <div class="landing-copy">
+        <p class="eyebrow">MISSION PARAMETERS</p>
+        <h1>Configure Launch</h1>
+        <p class="landing-lead">
+          Adjust physics and rocket parameters, then launch into orbit.
+        </p>
+      </div>
 
-    display: flex;
-    gap: 10px;
-  }
+      <form id="mission-form" class="mission-card">
+        <div class="mission-card-header">
+          <span class="mission-card-kicker">Preflight console</span>
+          <span id="landing-status" class="status-pill status-pill-ready">Ready on the pad</span>
+        </div>
 
-  button {
-    padding: 8px 12px;
-    font-size: 14px;
-  }
-</style>
+        <div class="slider-field">
+          <label for="mission-g">Gravity (G)</label>
+          <span class="slider-description">Gravitational constant. Higher = stronger pull toward bodies.</span>
+          <input id="mission-g" type="range" min="0.1" max="20" step="0.1" value="1">
+          <span class="slider-readout" data-for="mission-g">1</span>
+        </div>
 
-<body class="m-0 overflow-hidden bg-black text-green-400 font-mono">
+        <div class="slider-field">
+          <label for="mission-dt">Time step (dt)</label>
+          <span class="slider-description">Simulation speed. Larger steps = faster but less accurate.</span>
+          <input id="mission-dt" type="range" min="0.001" max="0.1" step="0.001" value="0.03">
+          <span class="slider-readout" data-for="mission-dt">0.03</span>
+        </div>
 
-  <div class="fixed inset-0 z-10 pointer-events-none">
+        <div class="slider-field">
+          <label for="mission-moon-mass">Moon mass</label>
+          <span class="slider-description">Moon's gravitational influence relative to Earth.</span>
+          <input id="mission-moon-mass" type="range" min="0.01" max="1" step="0.01" value="0.247">
+          <span class="slider-readout" data-for="mission-moon-mass">0.247</span>
+        </div>
 
-    <!-- left control column -->
-    <div class="absolute top-4 left-4
-             flex flex-col gap-2
-             pointer-events-auto">
+        <div class="slider-field">
+          <label for="mission-isp">Specific impulse (Isp)</label>
+          <span class="slider-description">Engine efficiency. Higher = more velocity per unit fuel.</span>
+          <input id="mission-isp" type="range" min="50" max="2000" step="10" value="300">
+          <span class="slider-readout" data-for="mission-isp">300</span>
+        </div>
 
-      <button id="prograde" class="w-40
-               border border-green-500
-               bg-black/80
-               px-4 py-2
-               text-left
-               hover:bg-green-500/10
-               active:bg-green-500/20
-               transition">
-        PROGRADE
-      </button>
+        <div class="slider-field">
+          <label for="mission-thrust">Thrust</label>
+          <span class="slider-description">Engine force. Higher = faster acceleration.</span>
+          <input id="mission-thrust" type="range" min="0.01" max="50" step="0.01" value="2">
+          <span class="slider-readout" data-for="mission-thrust">2</span>
+        </div>
 
-      <button id="retrograde" class="w-40
-               border border-green-500
-               bg-black/80
-               px-4 py-2
-               text-left
-               hover:bg-green-500/10
-               active:bg-green-500/20
-               transition">
-        RETROGRADE
-      </button>
+        <div class="slider-field">
+          <label for="mission-dry-mass">Dry mass</label>
+          <span class="slider-description">Spacecraft mass without fuel.</span>
+          <input id="mission-dry-mass" type="range" min="0.1" max="20" step="0.1" value="2">
+          <span class="slider-readout" data-for="mission-dry-mass">2</span>
+        </div>
 
-      <button id="predict" class="w-40
-               border border-green-500
-               bg-black/80
-               px-4 py-2
-               text-left
-               hover:bg-green-500/10
-               active:bg-green-500/20
-               transition">
-        Predict Trajectory
-        </button>
+        <div class="slider-field">
+          <label for="mission-fuel-mass">Fuel mass</label>
+          <span class="slider-description">Starting propellant load.</span>
+          <input id="mission-fuel-mass" type="range" min="0" max="500" step="0.1" value="8">
+          <span class="slider-readout" data-for="mission-fuel-mass">8</span>
+        </div>
 
+        <div class="slider-field">
+          <label for="mission-path-steps">Trajectory look-ahead</label>
+          <span class="slider-description">How far ahead to predict the flight path.</span>
+          <input id="mission-path-steps" type="range" min="100" max="10000" step="100" value="2000">
+          <span class="slider-readout" data-for="mission-path-steps">2000</span>
+        </div>
+
+        <div class="slider-field">
+          <label for="mission-orbit-radius">Launch target radius</label>
+          <span class="slider-description">Orbital altitude after launch.</span>
+          <input id="mission-orbit-radius" type="range" min="1.1" max="10" step="0.1" value="2">
+          <span class="slider-readout" data-for="mission-orbit-radius">2</span>
+        </div>
+
+        <button id="launch-button" class="launch-button" type="button">Launch mission</button>
+        <p id="launch-note" class="launch-note">The rocket will lift off, pitch over, and then enter the main flight
+          loop.</p>
+      </form>
+    </section>
+  </main>
+
+  <div class="flight-ui fixed inset-0 z-10 pointer-events-none">
+    <div class="controls-panel pointer-events-auto">
+      <button id="prograde" class="control-button">PROGRADE</button>
+      <button id="retrograde" class="control-button">RETROGRADE</button>
+      <button id="circularize-btn" class="control-button">CIRCULARIZE</button>
+      <button id="predict" class="control-button">Predict Trajectory</button>
+      <button id="undo-btn" class="control-button control-button-subtle">UNDO</button>
+      <div class="autopilot-controls">
+        <select id="autopilot-orbit-type" class="control-select">
+          <option value="circular">Circular Orbit</option>
+          <option value="nrho">NRHO</option>
+        </select>
+        <button id="autopilot-btn" class="control-button">AUTOPILOT</button>
+        <button id="autopilot-cancel" class="control-button control-button-subtle" hidden>CANCEL AP</button>
+      </div>
+      <button id="toggle-params" class="control-button control-button-subtle">⚙ PARAMS</button>
     </div>
 
-    <!-- TELEMETRY -->
-    <div id="telemetry" class="absolute bottom-4 left-4
-             w-72
-             border border-green-500
-             bg-black/85
-             p-4
-             text-sm
-             leading-6">
+    <!-- In-flight parameter tuning panel (toggled by PARAMS button) -->
+    <div id="flight-params" class="flight-params-panel pointer-events-auto" hidden>
+      <div class="flight-params-title">LIVE PARAMETERS</div>
+      <div class="slider-field">
+        <label for="fp-g">Gravity (G)</label>
+        <input id="fp-g" type="range" min="0.1" max="20" step="0.1" value="1" data-param="mission-g">
+        <span class="slider-readout">1</span>
+      </div>
+      <div class="slider-field">
+        <label for="fp-dt">Sim speed (dt)</label>
+        <input id="fp-dt" type="range" min="0.001" max="0.1" step="0.001" value="0.03" data-param="mission-dt">
+        <span class="slider-readout">0.03</span>
+      </div>
+      <div class="slider-field">
+        <label for="fp-thrust">Thrust</label>
+        <input id="fp-thrust" type="range" min="0.01" max="50" step="0.01" value="2" data-param="mission-thrust">
+        <span class="slider-readout">2</span>
+      </div>
+      <div class="slider-field">
+        <label for="fp-isp">Isp</label>
+        <input id="fp-isp" type="range" min="50" max="2000" step="10" value="300" data-param="mission-isp">
+        <span class="slider-readout">300</span>
+      </div>
+      <div class="slider-field">
+        <label for="fp-moon-mass">Moon mass</label>
+        <input id="fp-moon-mass" type="range" min="0.01" max="1" step="0.01" value="0.247"
+          data-param="mission-moon-mass">
+        <span class="slider-readout">0.247</span>
+      </div>
+      <div class="slider-field">
+        <label for="fp-path-steps">Prediction steps</label>
+        <input id="fp-path-steps" type="range" min="100" max="10000" step="100" value="2000"
+          data-param="mission-path-steps">
+        <span class="slider-readout">2000</span>
+      </div>
+    </div>
 
-      <div class="mb-3 border-b border-green-500 pb-2">
-        FLIGHT TELEMETRY
+    <div id="telemetry" class="telemetry-panel pointer-events-auto">
+      <div class="telemetry-title">FLIGHT TELEMETRY</div>
+
+      <div class="telemetry-row"><span>VELOCITY</span><span id="velocity">0</span></div>
+      <div class="telemetry-row"><span>ACCELERATION</span><span id="acceleration">0</span></div>
+      <div class="telemetry-row"><span>TIMESTEP</span><span id="timestep">-</span></div>
+      <div class="telemetry-row"><span>FUEL</span><span id="fuel">-</span></div>
+      <div class="telemetry-row"><span>T+ TIME</span><span id="mission-timer">T+ 00:00:00</span></div>
+      <div class="telemetry-row"><span>STATUS</span><span id="mission-status">● NOMINAL</span></div>
+      <div class="telemetry-row" id="autopilot-status-row" hidden><span>AUTOPILOT</span><span
+          id="autopilot-phase">—</span></div>
+
+      <div class="fuel-bar">
+        <div id="fuel-bar-fill" class="fuel-bar-fill"></div>
       </div>
 
-      <div class="flex justify-between">
-        <span>VELOCITY</span>
-        <span id="velocity">0</span>
-      </div>
-      <div class="flex justify-between">
-        <span>ACCELERATION</span>
-        <span id="acceleration">0</span>
-      </div>
+      <div id="burn-indicator" class="burn-indicator"></div>
 
-      <div class="flex justify-between">
-        <span>TIMESTEP</span>
-        <span id="timestep">-</span>
+      <div class="shortcuts-legend">
+        <span><kbd>W</kbd><kbd>↑</kbd> Prograde</span>
+        <span><kbd>S</kbd><kbd>↓</kbd> Retrograde</span>
+        <span><kbd>⌘Z</kbd> Undo</span>
+        <span><kbd>R</kbd> Restart</span>
+        <span><kbd>Esc</kbd> Cancel AP</span>
       </div>
+    </div>
+  </div>
 
+  <div id="crash-overlay" class="crash-overlay" hidden>
+    <div class="crash-panel">
+      <div class="crash-icon">⚠</div>
+      <div id="crash-message" class="crash-message">MISSION FAILED</div>
+      <div id="crash-target" class="crash-target"></div>
+      <button id="restart-btn" class="launch-button">RESTART MISSION</button>
+      <span class="crash-hint">Press <kbd>R</kbd> to restart</span>
     </div>
   </div>
 
