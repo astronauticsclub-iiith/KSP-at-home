@@ -133,6 +133,8 @@ export function accWithMoonPos(pos, moonPos) {
 export const controls = {
     retrograding: false,
     prograding: false,
+    normalPos: false,    // RCS: thrust perpendicular to velocity (left / orbit-raise)
+    normalNeg: false,    // RCS: thrust perpendicular to velocity (right / orbit-lower)
 };
 
 function consumeFuel() {
@@ -140,6 +142,15 @@ function consumeFuel() {
     const used = (rocketParams.thrust / Math.max(rocketParams.Isp, 1)) * params.dt;
     rocketParams.fuelMass = Math.max(0, rocketParams.fuelMass - used);
     return rocketParams.thrust;
+}
+
+// RCS uses 30% of main engine thrust and fuel rate
+function consumeRCSFuel() {
+    if (rocketParams.fuelMass <= 0) return 0;
+    const rcsThrust = rocketParams.thrust * 0.3;
+    const used = (rcsThrust / Math.max(rocketParams.Isp, 1)) * params.dt;
+    rocketParams.fuelMass = Math.max(0, rocketParams.fuelMass - used);
+    return rcsThrust;
 }
 
 export function prograde() {
@@ -162,6 +173,37 @@ export function retrograde() {
     const dv = (thrust / mass) * params.dt;
     v.x -= dv * (v.x / speed);
     v.y -= dv * (v.y / speed);
+}
+
+/**
+ * Normal+ burn: thrust perpendicular to velocity (left in 2D — raises orbit).
+ * In 2D, normal to velocity (vx, vy) is (-vy, vx) normalized.
+ */
+export function normalPositive() {
+    const thrust = consumeRCSFuel();
+    if (thrust === 0) return;
+    const mass = rocketParams.dryMass + rocketParams.fuelMass;
+    const speed = Math.sqrt(v.x ** 2 + v.y ** 2);
+    if (speed === 0 || mass <= 0) return;
+    const dv = (thrust / mass) * params.dt;
+    // Perpendicular left: (-vy, vx) / speed
+    v.x += dv * (-v.y / speed);
+    v.y += dv * (v.x / speed);
+}
+
+/**
+ * Normal- burn: thrust perpendicular to velocity (right in 2D — lowers orbit).
+ */
+export function normalNegative() {
+    const thrust = consumeRCSFuel();
+    if (thrust === 0) return;
+    const mass = rocketParams.dryMass + rocketParams.fuelMass;
+    const speed = Math.sqrt(v.x ** 2 + v.y ** 2);
+    if (speed === 0 || mass <= 0) return;
+    const dv = (thrust / mass) * params.dt;
+    // Perpendicular right: (vy, -vx) / speed
+    v.x += dv * (v.y / speed);
+    v.y += dv * (-v.x / speed);
 }
 
 // ── Main step ─────────────────────────────────────────────────────────────────
@@ -192,6 +234,8 @@ export function step() {
     // Engine burns
     if (controls.prograding) prograde();
     if (controls.retrograding) retrograde();
+    if (controls.normalPos) normalPositive();
+    if (controls.normalNeg) normalNegative();
 
     // Advance moon orbit
     bodies.moon.pos.x = bodies.earth.pos.x + R * Math.cos(moonState.omega + Math.PI / 3);

@@ -1,7 +1,8 @@
 // ── Orbit Circularization Module ──────────────────────────────────────────────
 
 /**
- * Task 9.1: Compute the delta-v needed to circularize the current orbit.
+ * Compute the delta-v needed to circularize the current orbit.
+ * Uses velocity RELATIVE TO the dominant body for proper orbital mechanics.
  * Positive = prograde burn needed, negative = retrograde.
  */
 export function computeCircularizationDeltaV(pos, vel, bodyPos, bodyMass, G) {
@@ -9,8 +10,20 @@ export function computeCircularizationDeltaV(pos, vel, bodyPos, bodyMass, G) {
     const dy = pos.y - bodyPos.y;
     const r = Math.sqrt(dx * dx + dy * dy);
     const vCircular = Math.sqrt(G * bodyMass / r);
-    const vCurrent = Math.sqrt(vel.x * vel.x + vel.y * vel.y);
-    return vCircular - vCurrent; // positive = need to speed up (prograde)
+
+    // Compute tangential speed (component of velocity perpendicular to radius)
+    // This is what matters for circularization, not total speed
+    const rDir = { x: dx / r, y: dy / r }; // radial unit vector (outward)
+    // Tangential direction: perpendicular to radial, in direction of motion
+    const vDotR = vel.x * rDir.x + vel.y * rDir.y; // radial component
+    const vTangX = vel.x - vDotR * rDir.x;
+    const vTangY = vel.y - vDotR * rDir.y;
+    const vTangential = Math.sqrt(vTangX * vTangX + vTangY * vTangY);
+
+    // Also need to kill radial velocity for true circularization
+    // But prograde/retrograde only affects tangential. Use normal for radial.
+    // For simplicity, return tangential deficit only — user can use RCS for radial.
+    return vCircular - vTangential;
 }
 
 /**

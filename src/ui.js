@@ -53,23 +53,32 @@ export function updateTelemetry({ vx, vy, ax, ay, dt, fuelMass, crashed }) {
 }
 
 // ── Imports ───────────────────────────────────────────────────────────────────
-import { controls, undo, crashState, r, v, bodies, params, rocketParams } from './maneuver.js';
+import { controls, undo, crashState, r, v, bodies, params, rocketParams, normalPositive, normalNegative } from './maneuver.js';
 import { trajectory_Geometry } from './pod.js';
 import { CircularizationController, computeEccentricity, getDominantBody } from './circularize.js';
 
 // ── Prograde / Retrograde buttons ─────────────────────────────────────────────
 const probtn = document.getElementById('prograde');
 const retrobtn = document.getElementById('retrograde');
+const normalPosbtn = document.getElementById('normal-pos');
+const normalNegbtn = document.getElementById('normal-neg');
 
-function setPrograde(v) { controls.prograding = v; updateBurnIndicator(); }
-function setRetrograde(v) { controls.retrograding = v; updateBurnIndicator(); }
+function setPrograde(val) { controls.prograding = val; updateBurnIndicator(); }
+function setRetrograde(val) { controls.retrograding = val; updateBurnIndicator(); }
+function setNormalPos(val) { controls.normalPos = val; updateBurnIndicator(); }
+function setNormalNeg(val) { controls.normalNeg = val; updateBurnIndicator(); }
 
 function updateBurnIndicator() {
     if (!burnIndicator) return;
     if (controls.prograding) { burnIndicator.innerText = '🔥 PROGRADE BURN'; burnIndicator.style.opacity = '1'; }
     else if (controls.retrograding) { burnIndicator.innerText = '🔥 RETROGRADE BURN'; burnIndicator.style.opacity = '1'; }
+    else if (controls.normalPos) { burnIndicator.innerText = '🔥 RCS NORMAL+'; burnIndicator.style.opacity = '1'; }
+    else if (controls.normalNeg) { burnIndicator.innerText = '🔥 RCS NORMAL−'; burnIndicator.style.opacity = '1'; }
     else { burnIndicator.style.opacity = '0'; }
 }
+
+// Export for autopilot to use
+export { updateBurnIndicator };
 
 probtn.addEventListener('pointerdown', () => setPrograde(true));
 probtn.addEventListener('pointerup', () => setPrograde(false));
@@ -79,9 +88,22 @@ retrobtn.addEventListener('pointerdown', () => setRetrograde(true));
 retrobtn.addEventListener('pointerup', () => setRetrograde(false));
 retrobtn.addEventListener('pointerleave', () => setRetrograde(false));
 
+if (normalPosbtn) {
+    normalPosbtn.addEventListener('pointerdown', () => setNormalPos(true));
+    normalPosbtn.addEventListener('pointerup', () => setNormalPos(false));
+    normalPosbtn.addEventListener('pointerleave', () => setNormalPos(false));
+}
+if (normalNegbtn) {
+    normalNegbtn.addEventListener('pointerdown', () => setNormalNeg(true));
+    normalNegbtn.addEventListener('pointerup', () => setNormalNeg(false));
+    normalNegbtn.addEventListener('pointerleave', () => setNormalNeg(false));
+}
+
 // ── Keyboard controls ─────────────────────────────────────────────────────────
-// W / ↑  = prograde burn (hold for longer burn)
-// S / ↓  = retrograde burn (hold for longer burn)
+// W / ↑  = prograde burn (hold)
+// S / ↓  = retrograde burn (hold)
+// A / ←  = normal+ / RCS left (hold)
+// D / →  = normal- / RCS right (hold)
 // Ctrl+Z = undo
 
 document.addEventListener('keydown', e => {
@@ -90,6 +112,8 @@ document.addEventListener('keydown', e => {
     switch (e.key) {
         case 'w': case 'W': case 'ArrowUp': setPrograde(true); break;
         case 's': case 'S': case 'ArrowDown': setRetrograde(true); break;
+        case 'a': case 'A': case 'ArrowLeft': setNormalPos(true); break;
+        case 'd': case 'D': case 'ArrowRight': setNormalNeg(true); break;
     }
 });
 
@@ -97,6 +121,8 @@ document.addEventListener('keyup', e => {
     switch (e.key) {
         case 'w': case 'W': case 'ArrowUp': setPrograde(false); break;
         case 's': case 'S': case 'ArrowDown': setRetrograde(false); break;
+        case 'a': case 'A': case 'ArrowLeft': setNormalPos(false); break;
+        case 'd': case 'D': case 'ArrowRight': setNormalNeg(false); break;
     }
 });
 

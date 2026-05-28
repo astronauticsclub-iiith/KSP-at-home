@@ -475,11 +475,18 @@ function updateAutopilotUI() {
     if (Autopilot.isActive() || telemetry.phaseText !== '—') {
         if (autopilotStatusRow) autopilotStatusRow.hidden = false;
         if (autopilotPhaseEl) {
-            const dvText = telemetry.remainingDv > 0 ? ` (Δv: ${telemetry.remainingDv.toFixed(2)})` : '';
-            autopilotPhaseEl.textContent = telemetry.phaseText + dvText;
+            const burnType = Autopilot.getBurnType();
+            const dvText = telemetry.remainingDv > 0 ? ` Δv: ${telemetry.remainingDv.toFixed(2)}` : '';
+            const burnText = burnType ? ` 🔥${burnType.toUpperCase()}` : '';
+            autopilotPhaseEl.textContent = telemetry.phaseText + dvText + burnText;
         }
     } else {
         if (autopilotStatusRow) autopilotStatusRow.hidden = true;
+    }
+
+    // Update burn indicator to reflect autopilot burns
+    if (Autopilot.isActive()) {
+        UI.updateBurnIndicator();
     }
 
     // Reset UI when autopilot completes
