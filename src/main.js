@@ -1,11 +1,10 @@
 import * as THREE from 'three'; // 3D objects API
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'; // add zoom features
 
-
 import * as PLANETS from './entities/planets.js';
 import * as POD from './entities/pod.js';
 import * as PATH from './entities/trajectory.js'; // trajectory prediction
-import * as VEC from './entities/velocity_vector.js'
+import * as VEC from './entities/velocity_vector.js';
 
 import './styles.css';
 import * as UI from './frontend/ui.js';
@@ -34,7 +33,7 @@ document.body.appendChild(renderer.domElement);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 
-//scene
+//--------------SCENE----------------------
 
 //planets
 scene.add(PLANETS.earth);
@@ -54,13 +53,11 @@ scene.add(ambient);
 
 //background
 const loader = new THREE.TextureLoader();
-
 loader.load('assets/bg.webp', (texture) => {
     scene.background = texture;
 });
 
 // velocity vectors
-
 scene.add(VEC.velArrow);
 
 //add zoom features
@@ -75,19 +72,13 @@ PATH.predict_trajectory_init(); //start trajectory
 function animate() {
     const { x, y, theta, vx, vy, ax, ay, moonx, moony, dt } = STEP.step();
 
-    POD.pod.position.x = x;
-    POD.pod.position.y = y;
-    POD.pod.rotation.z = -Math.PI / 2 + theta;
-    PLANETS.earth.rotation.y += 0.002;
-
-    PLANETS.moon.position.x = moonx;
-    PLANETS.moon.position.y = moony;
-
+    //Update planet Positions
+    UI.update_position(x, y, theta, moonx, moony);
     // Update HUD
     UI.updateTelemetry({ vx, vy, ax, ay, dt });
 
     // velocity vector
-    VEC.update_vector(x,y,vx,vy)
+    VEC.update_vector(x, y, vx, vy);
 
     if (UI.autoPredict) {
         PATH.trajectory_UI_update();

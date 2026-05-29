@@ -1,7 +1,21 @@
 import { controls } from '../physics/maneuver.js';
 import { trajectory_Geometry } from '../entities/pod.js';
+import * as POD from '../entities/pod.js';
+import * as PLANETS from '../entities/planets.js';
 
-// This file is responsible for updating the HUD and UI
+// This file is responsible for updating the HUD and UI and Entites
+
+//--------Object Positions---------
+export function update_position(x, y, theta, moonx, moony) {
+    POD.pod.position.x = x;
+    POD.pod.position.y = y;
+    POD.pod.rotation.z = -Math.PI / 2 + theta;
+
+    PLANETS.earth.rotation.y += 0.002;
+
+    PLANETS.moon.position.x = moonx;
+    PLANETS.moon.position.y = moony;
+}
 
 //-----HUD----------
 const vel = document.getElementById('velocity');
