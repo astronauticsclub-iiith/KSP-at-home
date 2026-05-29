@@ -7,6 +7,8 @@ import * as STEP from './maneuver.js'; // Orbit Equations and Animation loop
 import * as PATH from './trajectory.js'; // trajectory prediction
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'; // add zoom features
 
+import * as COLLISION from './collision.js'
+
 const scene = new THREE.Scene();
 
 // camera
@@ -94,6 +96,14 @@ function animate() {
 
     if (UI.autoPredict) {
         PATH.trajectory_UI_update();
+    }
+
+    // check for collisions
+    COLLISION.collision_status();
+    if(COLLISION.crashState.crashed==true){
+        COLLISION.update_UI();
+        console.log(COLLISION.crashState.message);
+        return;
     }
 
     controls.update(); //zoom update

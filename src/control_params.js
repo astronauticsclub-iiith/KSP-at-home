@@ -20,9 +20,9 @@ let v = { x: 0.707, y: 0, z: 0 }; //start with a stable orbital velocity
 export let R = 15; //distance between earth and moon
 
 let bodies = {
-    earth: { m: 1, pos: { x: -3, y: -4, z: 0 } },
-    moon: { m: params.moonMass, pos: { x: 6, y: 8, z: 0 } },
-    sun: { m: 0, pos: { x: -20, y: 0, z: 1 } }, // mass of sun dosent matter
+    earth: { name:'EARTH',m: 1,r:1.05, pos: { x: -3, y: -4, z: 0 } },
+    moon: { name:'MOON',m: params.moonMass,r:0.42,pos: { x: 6, y: 8, z: 0 } },
+    sun: { name:'SUN',m: 0, pos: { x: -20, y: 0, z: 1 } }, // mass of sun dosent matter
 }; //artifically increase moons pull for now
 
 export { bodies };

@@ -71,7 +71,7 @@
                active:bg-green-500/20
                transition">
         Predict Trajectory
-        </button>
+      </button>
 
     </div>
 
@@ -102,6 +102,15 @@
         <span id="timestep">-</span>
       </div>
 
+    </div>
+  </div>
+
+  <div id="crash-overlay" class="crash-overlay" hidden>
+    <div class="crash-panel">
+      <div id="crash-message" class="crash-message">MISSION FAILED</div>
+      <div id="crash-target" class="crash-target"></div>
+      <button id="restart-btn" class="launch-button">RESTART MISSION</button>
+      <span class="crash-hint">Press <kbd>R</kbd> to restart</span>
     </div>
   </div>
 
