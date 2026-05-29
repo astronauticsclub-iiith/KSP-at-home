@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { bodies } from './control_params.js';
+import { bodies } from '../physics/control_params.js';
 
 const loader = new THREE.TextureLoader();
 

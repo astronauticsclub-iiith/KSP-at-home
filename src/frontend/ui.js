@@ -1,3 +1,6 @@
+import { controls } from '../physics/maneuver.js';
+import { trajectory_Geometry } from '../entities/pod.js';
+
 // This file is responsible for updating the HUD and UI
 
 //-----HUD----------
@@ -12,7 +15,6 @@ export function updateTelemetry({ vx, vy, ax, ay, dt }) {
 }
 
 //--------Buttons----------
-import { controls } from './maneuver';
 
 // Prograde and Retrograde buttons
 
@@ -35,7 +37,6 @@ retrobtn.addEventListener('pointerup', () => {
 });
 
 // Trajectory btn
-import { trajectory_Geometry } from './pod.js';
 
 export let autoPredict = false;
 const tra_btn = document.getElementById('predict');

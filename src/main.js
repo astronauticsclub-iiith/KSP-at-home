@@ -1,13 +1,14 @@
 import * as THREE from 'three'; // 3D objects API
-import * as PLANETS from './planets.js';
+import * as PLANETS from './entities/planets.js';
 import './styles.css';
-import * as UI from './ui.js';
+import * as UI from './frontend/ui.js';
 
-import * as STEP from './maneuver.js'; // Orbit Equations and Animation loop
-import * as PATH from './trajectory.js'; // trajectory prediction
+import * as STEP from './physics/maneuver.js'; // Orbit Equations and Animation loop
+import * as POD from './entities/pod.js';
+import * as PATH from './entities/trajectory.js'; // trajectory prediction
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'; // add zoom features
 
-import * as COLLISION from './collision.js'
+import * as COLLISION from './physics/collision.js';
 
 const scene = new THREE.Scene();
 
@@ -31,7 +32,6 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 
 //scene
-import * as POD from './pod.js';
 
 //planets
 scene.add(PLANETS.earth);
@@ -100,7 +100,7 @@ function animate() {
 
     // check for collisions
     COLLISION.collision_status();
-    if(COLLISION.crashState.crashed==true){
+    if (COLLISION.crashState.crashed == true) {
         COLLISION.update_UI();
         console.log(COLLISION.crashState.message);
         return;

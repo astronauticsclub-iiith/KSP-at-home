@@ -1,6 +1,6 @@
-import * as MAN from './maneuver.js';
+import * as MAN from '../physics/maneuver.js';
 import * as POD from './pod.js';
-import * as PARAMS from './control_params.js';
+import * as PARAMS from '../physics/control_params.js';
 
 export const pathLen = 2000; // predict trajectory 2000 steps ahead
 export const stateThreshold = 1e-5; // threshold for state comparison
