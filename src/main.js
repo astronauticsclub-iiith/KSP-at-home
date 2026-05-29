@@ -1,13 +1,16 @@
 import * as THREE from 'three'; // 3D objects API
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'; // add zoom features
+
+
 import * as PLANETS from './entities/planets.js';
+import * as POD from './entities/pod.js';
+import * as PATH from './entities/trajectory.js'; // trajectory prediction
+import * as VEC from './entities/velocity_vector.js'
+
 import './styles.css';
 import * as UI from './frontend/ui.js';
 
 import * as STEP from './physics/maneuver.js'; // Orbit Equations and Animation loop
-import * as POD from './entities/pod.js';
-import * as PATH from './entities/trajectory.js'; // trajectory prediction
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'; // add zoom features
-
 import * as COLLISION from './physics/collision.js';
 
 const scene = new THREE.Scene();
@@ -58,12 +61,7 @@ loader.load('assets/bg.webp', (texture) => {
 
 // velocity vectors
 
-const dir = new THREE.Vector3();
-const origin = new THREE.Vector3();
-const length = 1;
-const color = 0xff0000;
-const velArrow = new THREE.ArrowHelper(dir, origin, length, color);
-scene.add(velArrow);
+scene.add(VEC.velArrow);
 
 //add zoom features
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -72,6 +70,7 @@ controls.enableDamping = true;
 controls.zoomToCursor = true;
 
 PATH.predict_trajectory_init(); //start trajectory
+
 //animation loop
 function animate() {
     const { x, y, theta, vx, vy, ax, ay, moonx, moony, dt } = STEP.step();
@@ -88,11 +87,7 @@ function animate() {
     UI.updateTelemetry({ vx, vy, ax, ay, dt });
 
     // velocity vector
-    const vVec = new THREE.Vector3(vx, vy, 0);
-    const dir = vVec.clone().normalize();
-    velArrow.position.set(x, y, 0);
-    velArrow.setDirection(dir);
-    velArrow.setLength(2 * vVec.length()); // scale arrow length = 2*speed (just a scale)
+    VEC.update_vector(x,y,vx,vy)
 
     if (UI.autoPredict) {
         PATH.trajectory_UI_update();
