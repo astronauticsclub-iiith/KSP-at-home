@@ -2,11 +2,15 @@
 <html>
 
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>KSP at Home</title>
 </head>
 
 <body class="app-shell" data-mode="landing">
   <canvas id="scene-canvas" aria-hidden="true"></canvas>
+
+  <div id="launch-countdown" class="launch-countdown" aria-hidden="true"></div>
 
   <main id="landing-screen" class="landing-screen">
     <div class="landing-backdrop" aria-hidden="true"></div>
@@ -96,23 +100,53 @@
   </main>
 
   <div class="flight-ui fixed inset-0 z-10 pointer-events-none">
+    <div class="top-bar pointer-events-auto">
+      <div class="focus-bar">
+        <span class="bar-label">Focus</span>
+        <button id="focus-earth" class="chip-btn">Earth <kbd>1</kbd></button>
+        <button id="focus-moon" class="chip-btn">Moon <kbd>2</kbd></button>
+        <button id="focus-ship" class="chip-btn is-active">Ship <kbd>3</kbd></button>
+      </div>
+      <div class="warp-bar">
+        <span class="bar-label">Warp</span>
+        <button class="chip-btn warp-btn is-active" data-warp="1">1x</button>
+        <button class="chip-btn warp-btn" data-warp="2">2x</button>
+        <button class="chip-btn warp-btn" data-warp="5">5x</button>
+        <button class="chip-btn warp-btn" data-warp="10">10x</button>
+        <button class="chip-btn warp-btn" data-warp="50">50x</button>
+      </div>
+    </div>
     <div class="controls-panel pointer-events-auto">
-      <button id="prograde" class="control-button">PROGRADE</button>
-      <button id="retrograde" class="control-button">RETROGRADE</button>
-      <button id="normal-pos" class="control-button">NORMAL +</button>
-      <button id="normal-neg" class="control-button">NORMAL −</button>
-      <button id="circularize-btn" class="control-button">CIRCULARIZE</button>
-      <button id="predict" class="control-button">Predict Trajectory</button>
-      <button id="undo-btn" class="control-button control-button-subtle">UNDO</button>
+      <button id="prograde" class="control-button"><span class="cb-label">PROGRADE</span><kbd>W</kbd></button>
+      <button id="retrograde" class="control-button"><span class="cb-label">RETROGRADE</span><kbd>S</kbd></button>
+      <button id="normal-pos" class="control-button"><span class="cb-label">NORMAL +</span><kbd>A</kbd></button>
+      <button id="normal-neg" class="control-button"><span class="cb-label">NORMAL -</span><kbd>D</kbd></button>
+      <button id="circularize-btn" class="control-button"><span class="cb-label">CIRCULARIZE</span><kbd>C</kbd></button>
+      <button id="predict" class="control-button"><span class="cb-label">Predict Trajectory</span><kbd>P</kbd></button>
+      <button id="hohmann-btn" class="control-button"><span class="cb-label">Show Hohmann</span><kbd>H</kbd></button>
+      <button id="undo-btn" class="control-button control-button-subtle"><span class="cb-label">UNDO</span><kbd>Ctrl Z</kbd></button>
       <div class="autopilot-controls">
         <select id="autopilot-orbit-type" class="control-select">
-          <option value="circular">Circular Orbit</option>
-          <option value="nrho">NRHO</option>
+          <option value="circularize">Circularize Here</option>
+          <option value="moon">Transfer to Moon</option>
         </select>
         <button id="autopilot-btn" class="control-button">AUTOPILOT</button>
-        <button id="autopilot-cancel" class="control-button control-button-subtle" hidden>CANCEL AP</button>
+        <button id="autopilot-cancel" class="control-button control-button-subtle" hidden><span class="cb-label">CANCEL AP</span><kbd>Esc</kbd></button>
       </div>
-      <button id="toggle-params" class="control-button control-button-subtle">⚙ PARAMS</button>
+      <div class="mass-controls">
+        <div class="mass-controls-title">Mass (live)</div>
+        <div class="slider-field">
+          <label for="cp-dry-mass">Dry mass</label>
+          <input id="cp-dry-mass" type="range" min="0.1" max="20" step="0.1" value="2" data-param="mission-dry-mass">
+          <span class="slider-readout">2</span>
+        </div>
+        <div class="slider-field">
+          <label for="cp-fuel-mass">Fuel mass</label>
+          <input id="cp-fuel-mass" type="range" min="0" max="500" step="0.1" value="8" data-param="mission-fuel-mass">
+          <span class="slider-readout">8</span>
+        </div>
+      </div>
+      <button id="toggle-params" class="control-button control-button-subtle">PARAMS</button>
     </div>
 
     <!-- In-flight parameter tuning panel (toggled by PARAMS button) -->
@@ -139,6 +173,16 @@
         <span class="slider-readout">300</span>
       </div>
       <div class="slider-field">
+        <label for="fp-dry-mass">Dry mass</label>
+        <input id="fp-dry-mass" type="range" min="0.1" max="20" step="0.1" value="2" data-param="mission-dry-mass">
+        <span class="slider-readout">2</span>
+      </div>
+      <div class="slider-field">
+        <label for="fp-fuel-mass">Fuel mass</label>
+        <input id="fp-fuel-mass" type="range" min="0" max="500" step="0.1" value="8" data-param="mission-fuel-mass">
+        <span class="slider-readout">8</span>
+      </div>
+      <div class="slider-field">
         <label for="fp-moon-mass">Moon mass</label>
         <input id="fp-moon-mass" type="range" min="0.01" max="1" step="0.01" value="0.247"
           data-param="mission-moon-mass">
@@ -162,7 +206,7 @@
       <div class="telemetry-row"><span>T+ TIME</span><span id="mission-timer">T+ 00:00:00</span></div>
       <div class="telemetry-row"><span>STATUS</span><span id="mission-status">● NOMINAL</span></div>
       <div class="telemetry-row" id="autopilot-status-row" hidden><span>AUTOPILOT</span><span
-          id="autopilot-phase">—</span></div>
+          id="autopilot-phase">-</span></div>
 
       <div class="fuel-bar">
         <div id="fuel-bar-fill" class="fuel-bar-fill"></div>
@@ -171,11 +215,7 @@
       <div id="burn-indicator" class="burn-indicator"></div>
 
       <div class="shortcuts-legend">
-        <span><kbd>W</kbd><kbd>↑</kbd> Prograde</span>
-        <span><kbd>S</kbd><kbd>↓</kbd> Retrograde</span>
-        <span><kbd>A</kbd><kbd>←</kbd> Normal+</span>
-        <span><kbd>D</kbd><kbd>→</kbd> Normal−</span>
-        <span><kbd>⌘Z</kbd> Undo</span>
+        <span>Arrow keys mirror <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span>
         <span><kbd>R</kbd> Restart</span>
         <span><kbd>Esc</kbd> Cancel AP</span>
       </div>
@@ -184,7 +224,7 @@
 
   <div id="crash-overlay" class="crash-overlay" hidden>
     <div class="crash-panel">
-      <div class="crash-icon">⚠</div>
+      <div class="crash-icon">!</div>
       <div id="crash-message" class="crash-message">MISSION FAILED</div>
       <div id="crash-target" class="crash-target"></div>
       <button id="restart-btn" class="launch-button">RESTART MISSION</button>

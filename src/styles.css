@@ -40,7 +40,7 @@ canvas {
 	z-index: 0;
 }
 
-/* ─── Landing Screen ─── */
+/* Landing Screen */
 
 .landing-screen {
 	position: fixed;
@@ -116,7 +116,7 @@ canvas {
 	font-family: var(--font-mono);
 }
 
-/* ─── Mission Card (Preflight Console) ─── */
+/* Mission Card (Preflight Console) */
 
 .mission-card {
 	position: relative;
@@ -160,7 +160,7 @@ canvas {
 	font-family: var(--font-mono);
 }
 
-/* ─── Status Pills ─── */
+/* Status Pills */
 
 .status-pill {
 	display: inline-flex;
@@ -195,7 +195,7 @@ canvas {
 	color: var(--accent-danger);
 }
 
-/* ─── Mission Fields ─── */
+/* Mission Fields */
 
 .mission-field {
 	display: grid;
@@ -229,7 +229,7 @@ canvas {
 	border-color: rgba(0, 230, 118, 0.4);
 }
 
-/* ─── Slider Fields (ui-components.js) ─── */
+/* Slider Fields (ui-components.js) */
 
 .slider-field {
 	display: grid;
@@ -300,7 +300,7 @@ canvas {
 	font-variant-numeric: tabular-nums;
 }
 
-/* ─── Buttons ─── */
+/* Buttons */
 
 .launch-button,
 .control-button {
@@ -350,7 +350,7 @@ canvas {
 	line-height: 1.5;
 }
 
-/* ─── Flight UI ─── */
+/* Flight UI */
 
 .flight-ui {
 	opacity: 0;
@@ -360,17 +360,123 @@ canvas {
 
 .controls-panel {
 	position: absolute;
-	top: 1rem;
+	top: 4rem;
 	left: 1rem;
 	display: flex;
 	flex-direction: column;
 	gap: 0.5rem;
+	max-height: calc(100vh - 5rem);
+	overflow-y: auto;
+	overflow-x: hidden;
+	padding-right: 4px;
+}
+
+/* Top bar: camera focus + time warp */
+
+.top-bar {
+	position: absolute;
+	top: 1rem;
+	left: 50%;
+	transform: translateX(-50%);
+	display: flex;
+	gap: 1.5rem;
+	align-items: center;
+	flex-wrap: wrap;
+	justify-content: center;
+	padding: 0.4rem 0.75rem;
+	border-radius: 4px;
+	border: 1px solid var(--border);
+	background: var(--panel-bg);
+}
+
+.focus-bar,
+.warp-bar {
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+}
+
+.bar-label {
+	font-family: var(--font-mono);
+	font-size: 0.6rem;
+	letter-spacing: 0.15em;
+	text-transform: uppercase;
+	color: var(--text-secondary);
+	margin-right: 0.15rem;
+}
+
+.chip-btn {
+	appearance: none;
+	border: 1px solid var(--border);
+	border-radius: 3px;
+	background: var(--bg-primary);
+	color: var(--text-secondary);
+	font-family: var(--font-mono);
+	font-size: 0.7rem;
+	letter-spacing: 0.04em;
+	padding: 0.3rem 0.5rem;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.3rem;
+	transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+}
+
+.chip-btn:hover {
+	border-color: rgba(255, 255, 255, 0.25);
+	color: var(--text-primary);
+}
+
+.chip-btn.is-active {
+	border-color: rgba(0, 230, 118, 0.5);
+	color: var(--accent-nominal);
+	background: rgba(0, 230, 118, 0.08);
+}
+
+.chip-btn kbd {
+	border: 1px solid var(--border);
+	border-radius: 2px;
+	padding: 0 0.25em;
+	font-size: 0.6rem;
+	color: inherit;
+	opacity: 0.7;
 }
 
 .control-button {
 	min-width: 10rem;
 	padding: 0.65rem 0.85rem;
 	font-weight: 600;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.6rem;
+}
+
+.control-button .cb-label {
+	text-align: left;
+}
+
+.control-button kbd {
+	flex: none;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 1.5em;
+	padding: 0.1em 0.35em;
+	border: 1px solid var(--border);
+	border-radius: 3px;
+	background: rgba(255, 255, 255, 0.07);
+	font-family: var(--font-mono);
+	font-size: 0.66rem;
+	line-height: 1;
+	letter-spacing: 0;
+	text-transform: none;
+	color: var(--text-secondary);
+}
+
+.control-button:hover kbd {
+	color: var(--text-primary);
+	border-color: rgba(255, 255, 255, 0.2);
 }
 
 .control-button-subtle {
@@ -378,7 +484,35 @@ canvas {
 	color: var(--text-secondary);
 }
 
-/* ─── Autopilot Controls ─── */
+/* Mass Controls (live dry/fuel mass in control panel) */
+
+.mass-controls {
+	display: flex;
+	flex-direction: column;
+	gap: 0.45rem;
+	min-width: 10rem;
+	margin-top: 0.5rem;
+	padding-top: 0.55rem;
+	border-top: 1px solid var(--border);
+}
+
+.mass-controls-title {
+	font-family: var(--font-mono);
+	font-size: 0.6rem;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	color: var(--text-secondary);
+}
+
+.mass-controls .slider-field {
+	gap: 0.15rem 0.5rem;
+}
+
+.mass-controls .slider-field label {
+	font-size: 0.62rem;
+}
+
+/* Autopilot Controls */
 
 .autopilot-controls {
 	display: flex;
@@ -424,7 +558,7 @@ canvas {
 	color: var(--text-primary);
 }
 
-/* ─── Telemetry Panel ─── */
+/* Telemetry Panel */
 
 .telemetry-panel {
 	position: absolute;
@@ -468,7 +602,7 @@ canvas {
 	text-align: right;
 }
 
-/* ─── Fuel Bar ─── */
+/* Fuel Bar */
 
 .fuel-bar {
 	margin-top: 0.65rem;
@@ -486,7 +620,7 @@ canvas {
 	transition: width 180ms ease, background 180ms ease;
 }
 
-/* ─── Burn Indicator ─── */
+/* Burn Indicator */
 
 .burn-indicator {
 	min-height: 1rem;
@@ -499,7 +633,7 @@ canvas {
 	transition: opacity 150ms ease;
 }
 
-/* ─── Shortcuts Legend ─── */
+/* Shortcuts Legend */
 
 .shortcuts-legend {
 	margin-top: 0.75rem;
@@ -533,7 +667,7 @@ canvas {
 	color: var(--text-primary);
 }
 
-/* ─── Slider Description ─── */
+/* Slider Description */
 
 .slider-description {
 	grid-column: 1 / -1;
@@ -545,7 +679,7 @@ canvas {
 	opacity: 0.8;
 }
 
-/* ─── Crash Overlay ─── */
+/* Crash Overlay */
 
 .crash-overlay {
 	position: fixed;
@@ -616,7 +750,7 @@ canvas {
 	color: var(--text-primary);
 }
 
-/* ─── Mode Transitions ─── */
+/* Mode Transitions */
 
 body[data-mode="landing"] .flight-ui,
 body[data-mode="launching"] .flight-ui {
@@ -630,13 +764,44 @@ body[data-mode="flight"] .flight-ui {
 }
 
 body[data-mode="launching"] .landing-screen {
-	opacity: 0.85;
+	opacity: 0;
+	pointer-events: none;
 }
 
 body[data-mode="flight"] .landing-screen {
 	opacity: 0;
 	pointer-events: none;
 	transform: translateY(-8px);
+}
+
+/* Launch Countdown */
+
+.launch-countdown {
+	position: fixed;
+	inset: 0;
+	z-index: 30;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	pointer-events: none;
+	opacity: 0;
+	transition: opacity 200ms ease;
+	font-family: var(--font-mono);
+	font-size: clamp(5rem, 22vw, 16rem);
+	font-weight: 700;
+	color: var(--text-primary);
+	text-shadow: 0 0 40px rgba(0, 230, 118, 0.45);
+	letter-spacing: 0.05em;
+}
+
+.launch-countdown.is-visible {
+	opacity: 1;
+}
+
+.launch-countdown.is-liftoff {
+	font-size: clamp(3rem, 12vw, 9rem);
+	color: var(--accent-nominal);
+	text-shadow: 0 0 60px rgba(0, 230, 118, 0.7);
 }
 
 body[data-mode="landing"] .lil-gui,
@@ -649,7 +814,7 @@ body[data-mode="flight"] .lil-gui {
 	opacity: 1;
 }
 
-/* ─── Flight Params Panel ─── */
+/* Flight Params Panel */
 
 .flight-params-panel {
 	position: absolute;
@@ -679,7 +844,7 @@ body[data-mode="flight"] .lil-gui {
 	margin-bottom: 0.6rem;
 }
 
-/* ─── Responsive ─── */
+/* Responsive */
 
 @media (max-width: 900px) {
 	.landing-shell {

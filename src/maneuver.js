@@ -1,4 +1,4 @@
-// ── Simulation parameters ─────────────────────────────────────────────────────
+// Simulation parameters
 export const params = {
     G: 1,
     dt: 0.03,
@@ -6,7 +6,7 @@ export const params = {
     pathSteps: 2000,   // How many steps ahead to predict (each step = dt seconds of sim time)
 };
 
-// ── Rocket parameters ─────────────────────────────────────────────────────────
+// Rocket parameters
 export const rocketParams = {
     Isp: 300,      // Specific impulse — exhaust velocity in game units (higher = more efficient)
     dryMass: 2,    // Dry mass (structure + engine, no fuel)
@@ -14,25 +14,25 @@ export const rocketParams = {
     thrust: 2,     // Engine thrust force
 };
 
-// ── Moon orbital state (exported so trajectory prediction can simulate it) ────
+// Moon orbital state (exported so trajectory prediction can simulate it)
 export const moonState = { omega: 0 };
 const R = 15; // Earth–Moon orbital radius
 
-// ── Spacecraft state ──────────────────────────────────────────────────────────
+// Spacecraft state
 export let r = { x: -3, y: -2, z: 0 };
 export let v = { x: 1 / Math.sqrt(2), y: 0, z: 0 };
 
-// ── Celestial bodies ──────────────────────────────────────────────────────────
+// Celestial bodies
 export let bodies = {
     earth: { m: 1, pos: { x: -3, y: -4, z: 0 } },
     moon: { m: params.moonMass, pos: { x: 6, y: 8, z: 0 } },
     sun: { m: 0, pos: { x: -20, y: 0, z: 1 } },
 };
 
-// ── Crash state ───────────────────────────────────────────────────────────────
+// Crash state
 export const crashState = { crashed: false, message: '' };
 
-// ── Undo history ──────────────────────────────────────────────────────────────
+// Undo history
 const stateHistory = [];
 const MAX_HISTORY = 100;
 let frameCount = 0;
@@ -59,17 +59,19 @@ export function undo() {
     return true;
 }
 
-// ── Initial orbit setup ───────────────────────────────────────────────────────
+// Initial orbit setup
 export function setInitialOrbit(orbitRadius) {
     const ex = bodies.earth.pos.x;
     const ey = bodies.earth.pos.y;
     r.x = ex + orbitRadius;
     r.y = ey;
     r.z = 0;
-    // Circular orbital velocity: v = sqrt(G * M / r)
+    // Circular orbital velocity: v = sqrt(G * M / r).
+    // Negative y (clockwise) so it matches the launch arc's downrange insertion
+    // tangent — the spacecraft is already moving this way when the burn ends.
     const vCirc = Math.sqrt(params.G * bodies.earth.m / orbitRadius);
     v.x = 0;
-    v.y = vCirc;
+    v.y = -vCirc;
     v.z = 0;
     stateHistory.length = 0;
     crashState.crashed = false;
@@ -77,7 +79,7 @@ export function setInitialOrbit(orbitRadius) {
     frameCount = 0;
 }
 
-// ── Physics helpers ───────────────────────────────────────────────────────────
+// Physics helpers
 function dist(x1, y1, x2, y2) {
     return Math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2);
 }
@@ -129,7 +131,7 @@ export function accWithMoonPos(pos, moonPos) {
     return { ax, ay };
 }
 
-// ── Burn controls ─────────────────────────────────────────────────────────────
+// Burn controls
 export const controls = {
     retrograding: false,
     prograding: false,
@@ -206,7 +208,7 @@ export function normalNegative() {
     v.y += dv * (-v.x / speed);
 }
 
-// ── Main step ─────────────────────────────────────────────────────────────────
+// Main step
 export function step() {
     if (crashState.crashed) {
         return {
@@ -242,7 +244,7 @@ export function step() {
     bodies.moon.pos.y = bodies.earth.pos.y + R * Math.sin(moonState.omega + Math.PI / 3);
     moonState.omega -= 0.0001;
 
-    // ── Collision detection ──────────────────────────────────────────────────
+    // Collision detection
     const earthDist = dist(r.x, r.y, bodies.earth.pos.x, bodies.earth.pos.y);
     const moonDist = dist(r.x, r.y, bodies.moon.pos.x, bodies.moon.pos.y);
 

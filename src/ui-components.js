@@ -1,4 +1,4 @@
-// ── UI Component Factory ──────────────────────────────────────────────────────
+// UI Component Factory
 // Reusable components for the SpaceX-inspired control interface.
 // Styled via class names defined in styles.css.
 

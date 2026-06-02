@@ -184,7 +184,7 @@ export function playSeparation(scene, velocity) {
 
 export { pod, exhaustAnchor };
 
-// ── Trajectory prediction buffer ──────────────────────────────────────────────
+// Trajectory prediction buffer
 // pathLen is the MAX buffer size — actual drawn points is controlled by pathSteps in params
 export const pathLen = 10000;
 

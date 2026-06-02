@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-// ─── Internal State ────────────────────────────────────────────────────────────
+// Internal State
 
 let sceneRef = null;
 
@@ -25,7 +25,7 @@ let smokeVelocities = null;
 let smokeAges = null;
 let smokeLives = null;
 
-// ─── Initialization ────────────────────────────────────────────────────────────
+// Initialization
 
 /**
  * Sets up the exhaust and smoke particle systems and adds them to the scene.
@@ -94,7 +94,7 @@ export function initLaunchEffects(scene) {
     scene.add(smokePoints);
 }
 
-// ─── Update ────────────────────────────────────────────────────────────────────
+// Update
 
 /**
  * Per-frame update: spawns new particles and updates active ones.
@@ -113,12 +113,12 @@ export function updateLaunchEffects(dt, rocketPosition, rocketVelocity) {
     // Exhaust position: offset behind rocket in velocity direction
     const exhaustOrigin = rocketPosition.clone().sub(velDir.clone().multiplyScalar(0.5));
 
-    // Task 4.6: Scale material base size based on rocket speed for motion blur effect
+    // Scale material base size based on rocket speed for motion blur effect
     // Faster rocket = larger particles that create a stretched/streaked look
     const baseSize = 0.15 + Math.min(speed * 0.05, 0.35);
     exhaustMaterial.size = baseSize;
 
-    // Task 4.6: When moving fast, spawn particles in a trail pattern
+    // When moving fast, spawn particles in a trail pattern
     // (closer together along velocity direction) to create streak illusion
     const exhaustSpawnCount = 8 + Math.floor(Math.random() * 5) + Math.floor(speed * 2);
     for (let s = 0; s < exhaustSpawnCount; s++) {
@@ -151,7 +151,7 @@ export function updateLaunchEffects(dt, rocketPosition, rocketVelocity) {
         exhaustVelocities[base + 1] = ry * baseSpeed + (Math.random() - 0.5) * 0.3;
         exhaustVelocities[base + 2] = 0;
 
-        // Task 4.6: Per-particle size scaled by velocity magnitude
+        // Per-particle size scaled by velocity magnitude
         const particleSpeed = Math.sqrt(
             exhaustVelocities[base] ** 2 + exhaustVelocities[base + 1] ** 2
         );
@@ -201,7 +201,7 @@ export function updateLaunchEffects(dt, rocketPosition, rocketVelocity) {
         exhaustPositions[base] += exhaustVelocities[base] * dt;
         exhaustPositions[base + 1] += exhaustVelocities[base + 1] * dt;
 
-        // Task 4.6: Update per-particle size based on current velocity (motion blur)
+        // Update per-particle size based on current velocity (motion blur)
         const vx = exhaustVelocities[base];
         const vy = exhaustVelocities[base + 1];
         const pSpeed = Math.sqrt(vx * vx + vy * vy);
@@ -239,7 +239,7 @@ export function updateLaunchEffects(dt, rocketPosition, rocketVelocity) {
     smokeGeometry.attributes.position.needsUpdate = true;
 }
 
-// ─── Disposal ──────────────────────────────────────────────────────────────────
+// Disposal
 
 /**
  * Removes particle systems from scene and disposes GPU resources.
@@ -284,7 +284,7 @@ export function disposeLaunchEffects() {
     sceneRef = null;
 }
 
-// ─── Helpers ───────────────────────────────────────────────────────────────────
+// Helpers
 
 /**
  * Find a dead particle in the pool (age >= life) to reuse.

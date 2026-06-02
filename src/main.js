@@ -6,10 +6,15 @@ import * as UI from './ui.js'
 import { initLaunchEffects, updateLaunchEffects, disposeLaunchEffects } from './launch-effects.js';
 import { triggerCrashEffect, updateCrashEffect, disposeCrashEffect } from './crash.js';
 import * as Autopilot from './autopilot.js';
+import * as HOHMANN from './hohmann.js';
 
 const scene = new THREE.Scene()
 
 document.body.dataset.mode = 'landing';
+
+// Launch geometry
+const EARTH_SURFACE = 1;         // Earth visual radius (units)
+const ROCKET_HALF_LENGTH = 0.9;  // rough half-height of the rocket stack
 
 const landingScreen = document.getElementById('landing-screen');
 const landingStatus = document.getElementById('landing-status');
@@ -28,14 +33,37 @@ const missionInputs = {
 
 const launchSequence = {
     active: false,
+    phase: 'idle',          // 'countdown' | 'flight'
     finishing: false,
-    startTime: 0,
-    duration: 3200,
+    countdownStart: 0,
+    countdownDuration: 3200, // 3 .. 2 .. 1 .. liftoff
+    flightStart: 0,
+    duration: 4500,
     start: new THREE.Vector3(),
-    control: new THREE.Vector3(),
+    control1: new THREE.Vector3(),
+    control2: new THREE.Vector3(),
     end: new THREE.Vector3(),
+    pad: new THREE.Vector3(),
     orbitRadius: 2,
 };
+
+const countdownEl = document.getElementById('launch-countdown');
+let countdownHideTimer = null;
+
+function showCountdown(text) {
+    if (!countdownEl) return;
+    if (countdownHideTimer) { clearTimeout(countdownHideTimer); countdownHideTimer = null; }
+    countdownEl.textContent = text;
+    countdownEl.classList.add('is-visible');
+    countdownEl.classList.toggle('is-liftoff', text === 'LIFTOFF');
+}
+
+function hideCountdown(delay = 0) {
+    if (!countdownEl) return;
+    countdownHideTimer = setTimeout(() => {
+        countdownEl.classList.remove('is-visible', 'is-liftoff');
+    }, delay);
+}
 
 let crashTriggered = false;
 const crashOverlay = document.getElementById('crash-overlay');
@@ -43,10 +71,6 @@ const crashMessageEl = document.getElementById('crash-message');
 const crashTargetEl = document.getElementById('crash-target');
 const restartBtn = document.getElementById('restart-btn');
 
-const launchCamera = {
-    position: new THREE.Vector3(),
-    target: new THREE.Vector3(),
-};
 
 
 
@@ -54,26 +78,31 @@ function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
 }
 
-function easeOutCubic(t) {
-    return 1 - (1 - t) ** 3;
+// Slow majestic liftoff, accelerate through the gravity turn, settle into orbit.
+function easeInOutCubic(t) {
+    return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
 }
 
-function quadraticBezier(p0, p1, p2, t) {
-    const inv = 1 - t;
-    const a = inv * inv;
-    const b = 2 * inv * t;
-    const c = t * t;
+// Cubic Bezier with two control points — gives the classic gravity-turn S-curve:
+// near-vertical climb off the pad, pitch-over downrange, tangential orbit insertion.
+function cubicBezier(p0, p1, p2, p3, t) {
+    const u = 1 - t;
+    const a = u * u * u;
+    const b = 3 * u * u * t;
+    const c = 3 * u * t * t;
+    const d = t * t * t;
     return new THREE.Vector3(
-        a * p0.x + b * p1.x + c * p2.x,
-        a * p0.y + b * p1.y + c * p2.y,
+        a * p0.x + b * p1.x + c * p2.x + d * p3.x,
+        a * p0.y + b * p1.y + c * p2.y + d * p3.y,
         0,
     );
 }
 
-function quadraticBezierTangent(p0, p1, p2, t) {
+function cubicBezierTangent(p0, p1, p2, p3, t) {
+    const u = 1 - t;
     return new THREE.Vector3(
-        2 * (1 - t) * (p1.x - p0.x) + 2 * t * (p2.x - p1.x),
-        2 * (1 - t) * (p1.y - p0.y) + 2 * t * (p2.y - p1.y),
+        3 * u * u * (p1.x - p0.x) + 6 * u * t * (p2.x - p1.x) + 3 * t * t * (p3.x - p2.x),
+        3 * u * u * (p1.y - p0.y) + 6 * u * t * (p2.y - p1.y) + 3 * t * t * (p3.y - p2.y),
         0,
     );
 }
@@ -82,28 +111,27 @@ function setMode(mode) {
     document.body.dataset.mode = mode;
 }
 
-function setCameraFollow(position, intensity = 0.08, t = 0) {
-    // Task 4.5: Low upward angle at launch start, lerp to chase cam at end
-    // Close low-angle camera: offset (+0.3, -2.5, 4.5) from rocket, looking up
-    const lowCamPos = new THREE.Vector3(position.x + 0.3, position.y - 2.5, 4.5);
-    const lowCamTarget = new THREE.Vector3(position.x, position.y + 1.0, 0);
+// Cinematic launch camera: a low, broadcast-style ground cam beside the pad
+// during countdown and the early climb (panning up to track the rocket), then
+// eases back into the orbital chase cam as it pitches over.
+// progress: 0 on the pad → 1 at orbit insertion.
+function setLaunchCamera(rocketPos, progress, intensity = 0.1) {
+    const pad = launchSequence.pad;
 
-    // Normal chase camera position
-    const chaseCamPos = new THREE.Vector3(position.x - 5.4, position.y + 2.8, 13.5);
-    const chaseCamTarget = new THREE.Vector3(position.x + 0.55, position.y + 0.15, 0);
+    const groundPos = new THREE.Vector3(pad.x + 5.0, pad.y + 0.8, 7.5);
+    const groundTarget = new THREE.Vector3(pad.x * 0.6 + rocketPos.x * 0.4, rocketPos.y, 0);
 
-    // Smoothly transition from low camera to chase camera over final 20% (t: 0.8 → 1.0)
-    let blend = 0; // 0 = low cam, 1 = chase cam
-    if (t > 0.8) {
-        blend = clamp((t - 0.8) / 0.2, 0, 1);
-    }
+    const chasePos = new THREE.Vector3(rocketPos.x - 5.5, rocketPos.y + 3.0, 14.0);
+    const chaseTarget = new THREE.Vector3(rocketPos.x, rocketPos.y, 0);
 
-    launchCamera.position.lerpVectors(lowCamPos, chaseCamPos, blend);
-    launchCamera.target.lerpVectors(lowCamTarget, chaseCamTarget, blend);
+    // Hold the ground cam through the early climb, then ease to the chase cam.
+    const blend = clamp((progress - 0.4) / 0.5, 0, 1);
+    const camPos = new THREE.Vector3().lerpVectors(groundPos, chasePos, blend);
+    const camTarget = new THREE.Vector3().lerpVectors(groundTarget, chaseTarget, blend);
 
-    camera.position.lerp(launchCamera.position, intensity);
-    controls.target.lerp(launchCamera.target, intensity);
-    camera.lookAt(launchCamera.target);
+    camera.position.lerp(camPos, intensity);
+    controls.target.lerp(camTarget, intensity);
+    camera.lookAt(camTarget);
 }
 
 
@@ -155,39 +183,53 @@ function startLaunchSequence() {
 
     UI.resetMissionTimer();
     setMode('launching');
-    setLandingMessage('Ignition sequence engaged', 'status-pill status-pill-ready');
+    setLandingMessage('Countdown', 'status-pill status-pill-ready');
     controls.enabled = false;
 
     launchSequence.active = true;
+    launchSequence.phase = 'countdown';
     launchSequence.finishing = false;
-    launchSequence.startTime = performance.now();
-    launchSequence.duration = 3200;
+    launchSequence.countdownStart = performance.now();
+    launchSequence.duration = 4500;
     launchSequence.orbitRadius = launchConfig.orbitRadius;
 
-    launchSequence.start.copy(POD.pod.position);
-    launchSequence.end.set(
-        STEP.bodies.earth.pos.x + launchSequence.orbitRadius,
-        STEP.bodies.earth.pos.y,
-        0,
-    );
-    launchSequence.control.set(
-        STEP.bodies.earth.pos.x + launchSequence.orbitRadius * 0.12,
-        STEP.bodies.earth.pos.y + Math.max(launchSequence.orbitRadius * 2.6, 4.2),
-        0,
-    );
+    const earth = STEP.bodies.earth.pos;
 
-    launchFlame.visible = true;
+    // Launch pad: sit the rocket ON Earth's north surface, pointing radially out.
+    launchSequence.pad.set(earth.x, earth.y + EARTH_SURFACE + ROCKET_HALF_LENGTH, 0);
+    launchSequence.start.copy(launchSequence.pad);
+
+    launchSequence.end.set(earth.x + launchSequence.orbitRadius, earth.y, 0);
+
+    // Gravity-turn arc. control1 sits straight above the pad so the rocket lifts
+    // off vertically; control2 sits straight above the insertion point so the
+    // final tangent is purely vertical (-y) — matching the circular orbit
+    // velocity set in finishLaunchSequence for a seamless hand-off.
+    const climb = Math.max(launchSequence.orbitRadius * 2.6, 4.5);
+    launchSequence.control1.set(launchSequence.start.x, launchSequence.start.y + climb, 0);
+    launchSequence.control2.set(launchSequence.end.x, launchSequence.end.y + climb * 0.9, 0);
+
+    // Stand the rocket on the pad, nose pointing straight up (radially outward).
+    POD.setStage('launch');
+    POD.pod.position.copy(launchSequence.pad);
+    POD.pod.rotation.z = Math.PI / 2;
+
+    launchFlame.visible = false;
+    launchFlame.material.opacity = 0;
     initLaunchEffects(scene);
+    showCountdown('3');
     PATH.predict_trajectory_init();
 }
 
 function finishLaunchSequence() {
     STEP.setInitialOrbit(launchSequence.orbitRadius);
     POD.pod.position.set(STEP.r.x, STEP.r.y, 0);
-    POD.pod.rotation.z = 0;
+    POD.pod.rotation.z = Math.atan2(STEP.v.y, STEP.v.x); // nose along velocity (prograde)
     launchFlame.visible = false;
+    launchFlame.material.opacity = 0;
     disposeLaunchEffects();
     launchSequence.active = false;
+    launchSequence.phase = 'idle';
     launchSequence.finishing = false;
     controls.enabled = true;
     setMode('flight');
@@ -195,10 +237,10 @@ function finishLaunchSequence() {
     UI.resetMissionTimer();
     PATH.predict_trajectory_init();
 
-    // Task 5.5: Transition to orbit stage (hides boosters, shows capsule)
+    // Transition to orbit stage (hides boosters, shows capsule)
     POD.setStage('orbit');
-    POD.playSeparation(scene, quadraticBezierTangent(
-        launchSequence.start, launchSequence.control, launchSequence.end, 1
+    POD.playSeparation(scene, cubicBezierTangent(
+        launchSequence.start, launchSequence.control1, launchSequence.control2, launchSequence.end, 1
     ).normalize());
 }
 
@@ -206,14 +248,14 @@ if (launchButton) {
     launchButton.addEventListener('click', startLaunchSequence);
 }
 
-// Task 5.6: Reset staging when restarting to landing mode.
-// Full restart logic is implemented in Task 6.7; this function provides
+// Reset staging when restarting to landing mode.
+// Full restart logic is implemented; this function provides
 // the staging reset hook for it.
 export function resetToLanding() {
     POD.setStage('launch');
 }
 
-// Task 6.7: Restart logic — reset everything to pre-flight state
+// Restart logic — reset everything to pre-flight state
 function restartMission() {
     disposeCrashEffect();
     crashTriggered = false;
@@ -255,41 +297,69 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// Wire up range slider readouts AND live parameter sync
-document.querySelectorAll('.slider-field input[type="range"]').forEach((slider) => {
-    const readout = slider.parentElement.querySelector('.slider-readout');
-    if (readout) {
-        slider.addEventListener('input', () => {
-            readout.textContent = slider.value;
-            // Sync parameter to sim in real time (works during flight too)
-            syncLiveParameter(slider.id, slider.value);
-        });
+// Wire ALL range sliders: update readout, sync to sim, and mirror any other
+// sliders bound to the same parameter. The same parameter can appear on the
+// landing screen, the control panel, and the params panel (matched by
+// data-param, falling back to id) — keeping them in lockstep avoids stale
+// duplicates.
+const allRangeSliders = Array.from(document.querySelectorAll('input[type="range"]'));
+
+function sliderReadout(slider) {
+    return slider.parentElement.querySelector('.slider-readout');
+}
+
+function sliderParam(slider) {
+    return slider.dataset.param || slider.id;
+}
+
+function setSliderDisplay(slider, value) {
+    slider.value = value;
+    const readout = sliderReadout(slider);
+    if (readout) readout.textContent = value;
+}
+
+function onSliderInput(slider) {
+    const param = sliderParam(slider);
+    const value = slider.value;
+    const readout = sliderReadout(slider);
+    if (readout) readout.textContent = value;
+    // Sync parameter to sim in real time (works during flight too)
+    syncLiveParameter(param, value);
+    // Mirror to every other slider bound to the same parameter
+    for (const other of allRangeSliders) {
+        if (other !== slider && sliderParam(other) === param) {
+            setSliderDisplay(other, value);
+        }
     }
+}
+
+allRangeSliders.forEach((slider) => {
+    slider.addEventListener('input', () => onSliderInput(slider));
 });
 
 /**
- * Update a single sim parameter from a slider change.
- * Works during flight — allows real-time tuning of physics/rocket params.
+ * Update a single sim parameter from a slider change. Keyed by the canonical
+ * parameter name (data-param / id). Works during flight too.
  */
-function syncLiveParameter(id, rawValue) {
+function syncLiveParameter(param, rawValue) {
     const val = Number.parseFloat(rawValue);
     if (!Number.isFinite(val)) return;
 
-    switch (id) {
-        case 'mission-g': case 'fp-g':
+    switch (param) {
+        case 'mission-g':
             STEP.params.G = val;
             break;
-        case 'mission-dt': case 'fp-dt':
+        case 'mission-dt':
             STEP.params.dt = val;
             break;
-        case 'mission-moon-mass': case 'fp-moon-mass':
+        case 'mission-moon-mass':
             STEP.params.moonMass = val;
             STEP.bodies.moon.m = val;
             break;
-        case 'mission-isp': case 'fp-isp':
+        case 'mission-isp':
             STEP.rocketParams.Isp = val;
             break;
-        case 'mission-thrust': case 'fp-thrust':
+        case 'mission-thrust':
             STEP.rocketParams.thrust = val;
             break;
         case 'mission-dry-mass':
@@ -299,7 +369,7 @@ function syncLiveParameter(id, rawValue) {
             STEP.rocketParams.fuelMass = val;
             UI.setMaxFuel(val);
             break;
-        case 'mission-path-steps': case 'fp-path-steps':
+        case 'mission-path-steps':
             STEP.params.pathSteps = Number.parseInt(rawValue, 10);
             break;
         case 'mission-orbit-radius':
@@ -315,16 +385,6 @@ if (toggleParamsBtn && flightParamsPanel) {
         flightParamsPanel.hidden = !flightParamsPanel.hidden;
     });
 }
-
-// Wire flight-params sliders for live sync
-document.querySelectorAll('#flight-params .slider-field input[type="range"]').forEach((slider) => {
-    const readout = slider.parentElement.querySelector('.slider-readout');
-    slider.addEventListener('input', () => {
-        if (readout) readout.textContent = slider.value;
-        syncLiveParameter(slider.id, slider.value);
-    });
-});
-
 
 // camera
 const camera = new THREE.PerspectiveCamera(
@@ -372,7 +432,7 @@ const launchFlame = new THREE.Mesh(
     }),
 );
 launchFlame.position.copy(POD.exhaustAnchor.position);
-launchFlame.rotation.z = Math.PI;
+launchFlame.rotation.z = -Math.PI / 2; // plume trails out the engine (-x, opposite the nose)
 launchFlame.visible = false;
 POD.pod.add(launchFlame);
 
@@ -421,7 +481,7 @@ controls.enableDamping = true;
 controls.zoomToCursor = true;
 controls.target.copy(POD.pod.position);
 
-// ── Autopilot UI wiring ───────────────────────────────────────────────────────
+// Autopilot UI wiring
 const autopilotBtn = document.getElementById('autopilot-btn');
 const autopilotCancelBtn = document.getElementById('autopilot-cancel');
 const autopilotOrbitSelect = document.getElementById('autopilot-orbit-type');
@@ -430,8 +490,8 @@ const autopilotPhaseEl = document.getElementById('autopilot-phase');
 
 if (autopilotBtn) {
     autopilotBtn.addEventListener('click', () => {
-        const orbitType = autopilotOrbitSelect ? autopilotOrbitSelect.value : 'circular';
-        const result = Autopilot.engage(orbitType, { x: STEP.r.x, y: STEP.r.y }, { x: STEP.v.x, y: STEP.v.y });
+        const mode = autopilotOrbitSelect ? autopilotOrbitSelect.value : 'circularize';
+        const result = Autopilot.engage(mode, { x: STEP.r.x, y: STEP.r.y }, { x: STEP.v.x, y: STEP.v.y });
         if (!result.success) {
             // Flash the button to indicate failure
             autopilotBtn.style.borderColor = 'rgba(255, 82, 82, 0.6)';
@@ -444,6 +504,11 @@ if (autopilotBtn) {
             autopilotBtn.hidden = true;
             if (autopilotOrbitSelect) autopilotOrbitSelect.hidden = true;
             if (autopilotCancelBtn) autopilotCancelBtn.hidden = false;
+            // Show the transfer ellipse only when actually transferring to the Moon.
+            if (mode === 'moon') {
+                HOHMANN.show();
+                setHohmannLabel(true);
+            }
         }
     });
 }
@@ -470,14 +535,118 @@ function resetAutopilotUI() {
     if (autopilotStatusRow) autopilotStatusRow.hidden = true;
 }
 
+// Hohmann transfer visualization wiring
+HOHMANN.initHohmann(scene);
+const hohmannBtn = document.getElementById('hohmann-btn');
+
+function setHohmannLabel(shown) {
+    if (!hohmannBtn) return;
+    const label = hohmannBtn.querySelector('.cb-label');
+    if (label) label.textContent = shown ? 'Hide Hohmann' : 'Show Hohmann';
+}
+
+function toggleHohmann() {
+    setHohmannLabel(HOHMANN.toggle());
+}
+
+if (hohmannBtn) hohmannBtn.addEventListener('click', toggleHohmann);
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'h' || e.key === 'H') {
+        if (!e.repeat) toggleHohmann();
+    }
+});
+
+// Camera focus + time warp
+let cameraFocus = 'ship';   // 'ship' | 'earth' | 'moon'
+let timeWarp = 1;
+const WARP_STEPS = [1, 2, 5, 10, 50];
+
+const focusButtons = {
+    ship: document.getElementById('focus-ship'),
+    earth: document.getElementById('focus-earth'),
+    moon: document.getElementById('focus-moon'),
+};
+
+function setFocus(target) {
+    if (!focusButtons[target]) return;
+    cameraFocus = target;
+    for (const [name, btn] of Object.entries(focusButtons)) {
+        if (btn) btn.classList.toggle('is-active', name === target);
+    }
+}
+
+for (const [name, btn] of Object.entries(focusButtons)) {
+    if (btn) btn.addEventListener('click', () => setFocus(name));
+}
+
+const warpButtons = Array.from(document.querySelectorAll('.warp-btn'));
+
+function setWarp(value) {
+    timeWarp = value;
+    for (const btn of warpButtons) {
+        btn.classList.toggle('is-active', Number(btn.dataset.warp) === value);
+    }
+}
+
+for (const btn of warpButtons) {
+    btn.addEventListener('click', () => setWarp(Number(btn.dataset.warp)));
+}
+
+function stepWarp(dir) {
+    const i = WARP_STEPS.indexOf(timeWarp);
+    const next = clamp(i + dir, 0, WARP_STEPS.length - 1);
+    setWarp(WARP_STEPS[next]);
+}
+
+// Keys: 1/2/3 focus Earth/Moon/Ship, ',' / '.' step time warp down/up.
+document.addEventListener('keydown', (e) => {
+    if (e.repeat) return;
+    switch (e.key) {
+        case '1': setFocus('earth'); break;
+        case '2': setFocus('moon'); break;
+        case '3': setFocus('ship'); break;
+        case ',': case '<': stepWarp(-1); break;
+        case '.': case '>': stepWarp(1); break;
+    }
+});
+
+// Click a body (Earth / Moon / ship) to lock the camera onto it.
+const focusRaycaster = new THREE.Raycaster();
+const focusPointer = new THREE.Vector2();
+renderer.domElement.addEventListener('click', (e) => {
+    if (document.body.dataset.mode !== 'flight') return;
+    const rect = renderer.domElement.getBoundingClientRect();
+    focusPointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    focusPointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    focusRaycaster.setFromCamera(focusPointer, camera);
+    const targets = [
+        [PLANETS.moon, 'moon'],
+        [POD.pod, 'ship'],
+        [PLANETS.earth, 'earth'],
+    ];
+    for (const [obj, name] of targets) {
+        if (focusRaycaster.intersectObject(obj, true).length > 0) {
+            setFocus(name);
+            break;
+        }
+    }
+});
+
+function getFocusPoint(shipX, shipY, moonX, moonY) {
+    if (cameraFocus === 'earth') return { x: STEP.bodies.earth.pos.x, y: STEP.bodies.earth.pos.y };
+    if (cameraFocus === 'moon') return { x: moonX, y: moonY };
+    return { x: shipX, y: shipY };
+}
+
 function updateAutopilotUI() {
     const telemetry = Autopilot.getTelemetry();
-    if (Autopilot.isActive() || telemetry.phaseText !== '—') {
+    if (Autopilot.isActive() || telemetry.phaseText !== '-') {
         if (autopilotStatusRow) autopilotStatusRow.hidden = false;
         if (autopilotPhaseEl) {
             const burnType = Autopilot.getBurnType();
-            const dvText = telemetry.remainingDv > 0 ? ` Δv: ${telemetry.remainingDv.toFixed(2)}` : '';
-            const burnText = burnType ? ` 🔥${burnType.toUpperCase()}` : '';
+            const dvText = telemetry.remainingDv > 0 ? ` dV: ${telemetry.remainingDv.toFixed(2)}` : '';
+            const burnText = burnType ? ` ${burnType.toUpperCase()}` : '';
             autopilotPhaseEl.textContent = telemetry.phaseText + dvText + burnText;
         }
     } else {
@@ -498,45 +667,89 @@ function updateAutopilotUI() {
 //animation loop
 function animate(now = performance.now()) {
     if (launchSequence.active) {
-        const t = clamp((now - launchSequence.startTime) / launchSequence.duration, 0, 1);
-        const eased = easeOutCubic(t);
-        const pos = quadraticBezier(launchSequence.start, launchSequence.control, launchSequence.end, eased);
-        const tangent = quadraticBezierTangent(launchSequence.start, launchSequence.control, launchSequence.end, eased).normalize();
+        const { start, control1, control2, end } = launchSequence;
 
-        POD.pod.position.copy(pos);
-        POD.pod.rotation.z = Math.atan2(tangent.y, tangent.x) - Math.PI / 2;
+        if (launchSequence.phase === 'countdown') {
+            // Hold on the pad, run the clock, spool the engines up at the end.
+            const remaining = launchSequence.countdownDuration - (now - launchSequence.countdownStart);
+            const secs = Math.ceil(remaining / 1000);
+            showCountdown(secs > 0 ? String(secs) : 'LIFTOFF');
 
-        launchFlame.visible = true;
-        launchFlame.material.opacity = 0.5 + 0.35 * Math.sin(now * 0.02);
-        launchFlame.scale.setScalar(0.75 + 0.22 * Math.sin(now * 0.03));
+            // Engine ignition over the final 0.8s: flame + smoke build before release.
+            const ignite = clamp(1 - remaining / 800, 0, 1);
+            launchFlame.visible = ignite > 0;
+            launchFlame.material.opacity = ignite * (0.5 + 0.4 * Math.sin(now * 0.04));
+            launchFlame.scale.setScalar(0.4 + ignite * 0.5);
+            if (ignite > 0) {
+                updateLaunchEffects(Math.min(0.05, STEP.params.dt), start.clone(), new THREE.Vector3(0, 1, 0));
+            }
 
-        const rocketVel = quadraticBezierTangent(launchSequence.start, launchSequence.control, launchSequence.end, eased);
-        updateLaunchEffects(Math.min(0.05, STEP.params.dt), pos, rocketVel);
+            // Low ground cam with rumble growing as the engines light.
+            setLaunchCamera(start, 0, 0.12);
+            const rumble = 0.06 * ignite;
+            camera.position.x += (Math.random() - 0.5) * rumble;
+            camera.position.y += (Math.random() - 0.5) * rumble;
 
-        setCameraFollow(pos, 0.085, t);
+            if (remaining <= 0) {
+                launchSequence.phase = 'flight';
+                launchSequence.flightStart = now;
+                hideCountdown(700);
+            }
+        } else {
+            const t = clamp((now - launchSequence.flightStart) / launchSequence.duration, 0, 1);
+            const eased = easeInOutCubic(t);
+            const pos = cubicBezier(start, control1, control2, end, eased);
+            const tangent = cubicBezierTangent(start, control1, control2, end, eased).normalize();
 
-        // Task 4.4: Camera shake — random displacement with amplitude 0.15,
-        // exponential decay over first 60% of launch duration
-        if (t < 0.6) {
-            const shakeIntensity = 0.15 * Math.exp(-t * 5);
-            camera.position.x += (Math.random() - 0.5) * shakeIntensity;
-            camera.position.y += (Math.random() - 0.5) * shakeIntensity;
+            POD.pod.position.copy(pos);
+            POD.pod.rotation.z = Math.atan2(tangent.y, tangent.x); // nose along the flight path
+
+            // Flame ramps to full over the first 8% of the climb, then flickers.
+            const throttle = clamp(0.4 + t / 0.08, 0.4, 1);
+            launchFlame.visible = true;
+            launchFlame.material.opacity = throttle * (0.6 + 0.35 * Math.sin(now * 0.02));
+            launchFlame.scale.setScalar(throttle * (0.9 + 0.22 * Math.sin(now * 0.03)));
+
+            const rocketVel = cubicBezierTangent(start, control1, control2, end, eased);
+            updateLaunchEffects(Math.min(0.05, STEP.params.dt), pos, rocketVel);
+
+            setLaunchCamera(pos, t, 0.09);
+
+            // Liftoff shake, decaying over the first 60% of the climb.
+            if (t < 0.6) {
+                const shakeIntensity = 0.15 * Math.exp(-t * 5);
+                camera.position.x += (Math.random() - 0.5) * shakeIntensity;
+                camera.position.y += (Math.random() - 0.5) * shakeIntensity;
+            }
+
+            if (t >= 1 && !launchSequence.finishing) {
+                launchSequence.finishing = true;
+                finishLaunchSequence();
+            }
         }
 
         PLANETS.earth.rotation.y += 0.0015;
         updateMoonPosition();
         STEP.moonState.omega -= 0.0001;
-
-        if (t >= 1 && !launchSequence.finishing) {
-            launchSequence.finishing = true;
-            finishLaunchSequence();
-        }
     } else {
         controls.enabled = true;
-        const { x, y, theta, vx, vy, ax, ay, moonx, moony, dt, fuelMass, crashed } = STEP.step();
+
+        // Time warp: run multiple physics sub-steps per frame (keeps dt small so
+        // accuracy holds). Warp is suppressed while thrusting, and while the
+        // autopilot is doing anything other than coasting, so burns and the
+        // lunar periapsis detection can't overshoot between frames.
+        const thrusting = STEP.controls.prograding || STEP.controls.retrograding
+            || STEP.controls.normalPos || STEP.controls.normalNeg;
+        const apBusy = Autopilot.isActive() && Autopilot.getPhase() !== 'COAST';
+        const subSteps = (thrusting || apBusy) ? 1 : Math.max(1, Math.round(timeWarp));
+        let stepResult = STEP.step();
+        for (let i = 1; i < subSteps && !stepResult.crashed; i++) {
+            stepResult = STEP.step();
+        }
+        const { x, y, theta, vx, vy, ax, ay, moonx, moony, dt, fuelMass, crashed } = stepResult;
         POD.pod.position.x = x;
         POD.pod.position.y = y;
-        POD.pod.rotation.z = -Math.PI / 2 + theta;
+        POD.pod.rotation.z = theta; // nose along velocity (prograde)
         PLANETS.earth.rotation.y += 0.002;
 
         PLANETS.moon.position.x = moonx;
@@ -557,7 +770,7 @@ function animate(now = performance.now()) {
         // Update crash animation every frame
         updateCrashEffect();
 
-        // Autopilot update (Task 8.11)
+        // Autopilot update
         Autopilot.update(
             STEP.params.dt,
             { x, y },
@@ -573,7 +786,7 @@ function animate(now = performance.now()) {
 
         // Update circularization burn each frame
         if (!crashed) {
-            UI.updateCircularization(dt);
+            UI.updateCircularization();
         }
 
         // velocity vector
@@ -592,8 +805,14 @@ function animate(now = performance.now()) {
             PATH.trajectory_UI_update();
         }
 
-        camera.position.lerp(new THREE.Vector3(x - 6, y + 3, 15), 0.04);
-        controls.target.lerp(new THREE.Vector3(x, y, 0), 0.06);
+        // Keep the Hohmann transfer ellipse anchored to the current orbit.
+        if (HOHMANN.isVisible()) {
+            HOHMANN.updateHohmann({ x, y }, STEP.bodies.earth.pos);
+        }
+
+        const fp = getFocusPoint(x, y, moonx, moony);
+        camera.position.lerp(new THREE.Vector3(fp.x - 6, fp.y + 3, 15), 0.06);
+        controls.target.lerp(new THREE.Vector3(fp.x, fp.y, 0), 0.08);
     }
 
     controls.update();  //zoom update

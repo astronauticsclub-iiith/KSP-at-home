@@ -1,4 +1,4 @@
-// ── HUD elements ──────────────────────────────────────────────────────────────
+// HUD elements
 const velEl = document.getElementById('velocity');
 const accnEl = document.getElementById('acceleration');
 const timeEl = document.getElementById('timestep');
@@ -40,10 +40,10 @@ export function updateTelemetry({ vx, vy, ax, ay, dt, fuelMass, crashed }) {
     // Status
     if (statusEl) {
         if (crashed) {
-            statusEl.innerText = window._crashMsg || '⚠ CRASHED';
+            statusEl.innerText = window._crashMsg || 'CRASHED';
             statusEl.className = 'status-crashed';
         } else if (fuelMass !== undefined && fuelMass <= 0) {
-            statusEl.innerText = '⊘ NO FUEL';
+            statusEl.innerText = 'NO FUEL';
             statusEl.className = 'status-warn';
         } else {
             statusEl.innerText = '● NOMINAL';
@@ -52,12 +52,12 @@ export function updateTelemetry({ vx, vy, ax, ay, dt, fuelMass, crashed }) {
     }
 }
 
-// ── Imports ───────────────────────────────────────────────────────────────────
-import { controls, undo, crashState, r, v, bodies, params, rocketParams, normalPositive, normalNegative } from './maneuver.js';
+// Imports
+import { controls, undo, r, v, bodies, params, rocketParams } from './maneuver.js';
 import { trajectory_Geometry } from './pod.js';
-import { CircularizationController, computeEccentricity, getDominantBody } from './circularize.js';
+import { CircularizationController, computeEccentricity, getNearestBody } from './circularize.js';
 
-// ── Prograde / Retrograde buttons ─────────────────────────────────────────────
+// Prograde / Retrograde buttons
 const probtn = document.getElementById('prograde');
 const retrobtn = document.getElementById('retrograde');
 const normalPosbtn = document.getElementById('normal-pos');
@@ -70,10 +70,10 @@ function setNormalNeg(val) { controls.normalNeg = val; updateBurnIndicator(); }
 
 function updateBurnIndicator() {
     if (!burnIndicator) return;
-    if (controls.prograding) { burnIndicator.innerText = '🔥 PROGRADE BURN'; burnIndicator.style.opacity = '1'; }
-    else if (controls.retrograding) { burnIndicator.innerText = '🔥 RETROGRADE BURN'; burnIndicator.style.opacity = '1'; }
-    else if (controls.normalPos) { burnIndicator.innerText = '🔥 RCS NORMAL+'; burnIndicator.style.opacity = '1'; }
-    else if (controls.normalNeg) { burnIndicator.innerText = '🔥 RCS NORMAL−'; burnIndicator.style.opacity = '1'; }
+    if (controls.prograding) { burnIndicator.innerText = 'PROGRADE BURN'; burnIndicator.style.opacity = '1'; }
+    else if (controls.retrograding) { burnIndicator.innerText = 'RETROGRADE BURN'; burnIndicator.style.opacity = '1'; }
+    else if (controls.normalPos) { burnIndicator.innerText = 'RCS NORMAL+'; burnIndicator.style.opacity = '1'; }
+    else if (controls.normalNeg) { burnIndicator.innerText = 'RCS NORMAL-'; burnIndicator.style.opacity = '1'; }
     else { burnIndicator.style.opacity = '0'; }
 }
 
@@ -99,21 +99,25 @@ if (normalNegbtn) {
     normalNegbtn.addEventListener('pointerleave', () => setNormalNeg(false));
 }
 
-// ── Keyboard controls ─────────────────────────────────────────────────────────
+// Keyboard controls
 // W / ↑  = prograde burn (hold)
 // S / ↓  = retrograde burn (hold)
 // A / ←  = normal+ / RCS left (hold)
 // D / →  = normal- / RCS right (hold)
-// Ctrl+Z = undo
+// C      = circularize (toggle)
+// P      = predict trajectory (toggle)
+// Ctrl/⌘+Z = undo
 
 document.addEventListener('keydown', e => {
-    if (e.ctrlKey && e.key === 'z') { e.preventDefault(); undo(); return; }
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); undo(); return; }
     if (e.repeat) return;
     switch (e.key) {
         case 'w': case 'W': case 'ArrowUp': setPrograde(true); break;
         case 's': case 'S': case 'ArrowDown': setRetrograde(true); break;
         case 'a': case 'A': case 'ArrowLeft': setNormalPos(true); break;
         case 'd': case 'D': case 'ArrowRight': setNormalNeg(true); break;
+        case 'c': case 'C': toggleCircularize(); break;
+        case 'p': case 'P': togglePrediction(); break;
     }
 });
 
@@ -126,70 +130,81 @@ document.addEventListener('keyup', e => {
     }
 });
 
-// ── Undo button ───────────────────────────────────────────────────────────────
+// Undo button
 const undoBtn = document.getElementById('undo-btn');
 if (undoBtn) undoBtn.addEventListener('click', () => undo());
 
-// ── Trajectory prediction toggle ──────────────────────────────────────────────
+// Set a control button's label without clobbering its <kbd> shortcut badge.
+function setBtnLabel(btn, text) {
+    if (!btn) return;
+    const label = btn.querySelector('.cb-label');
+    if (label) label.textContent = text;
+    else btn.textContent = text;
+}
+
+// Trajectory prediction toggle
 export let autoPredict = false;
 const tra_btn = document.getElementById('predict');
 
-tra_btn.addEventListener('click', () => {
+function togglePrediction() {
     autoPredict = !autoPredict;
-    tra_btn.innerText = autoPredict ? 'Stop Prediction' : 'Predict Trajectory';
+    setBtnLabel(tra_btn, autoPredict ? 'Stop Prediction' : 'Predict Trajectory');
     if (!autoPredict) {
         const attr = trajectory_Geometry.attributes.position;
         trajectory_Geometry.setDrawRange(0, 0);
         attr.needsUpdate = true;
     }
-});
+}
 
-// ── Circularization (Tasks 9.3–9.6) ──────────────────────────────────────────
+if (tra_btn) tra_btn.addEventListener('click', togglePrediction);
+
+// Circularization
 const circController = new CircularizationController();
 const circBtn = document.getElementById('circularize-btn');
 let eccentricityTimeout = null;
 
 export function getCircController() { return circController; }
 
-if (circBtn) {
-    circBtn.addEventListener('click', () => {
-        if (circController.active) {
-            // Cancel if already running
-            circController.cancel(controls);
-            circBtn.innerText = 'CIRCULARIZE';
-            updateBurnIndicator();
-            return;
-        }
-        // Start circularization burn
-        circController.start(r, v, bodies, params, rocketParams, controls);
-        if (circController.active) {
-            circBtn.innerText = 'CANCEL CIRC';
-            updateBurnIndicator();
-        }
-    });
+function toggleCircularize() {
+    if (!circBtn) return;
+    if (circController.active) {
+        // Cancel if already running
+        circController.cancel(controls);
+        setBtnLabel(circBtn, 'CIRCULARIZE');
+        updateBurnIndicator();
+        return;
+    }
+    // Start circularization burn
+    circController.start(r, v, bodies, params);
+    if (circController.active) {
+        setBtnLabel(circBtn, 'CANCEL CIRC');
+        updateBurnIndicator();
+    }
 }
+
+if (circBtn) circBtn.addEventListener('click', toggleCircularize);
 
 /**
  * Called each frame from the animation loop to update circularization state.
  * Returns the status object for UI notifications.
  */
-export function updateCircularization(dt) {
+export function updateCircularization() {
     if (!circController.active) return null;
 
-    const status = circController.update(dt, rocketParams, controls);
+    const status = circController.update(r, v, bodies, params, rocketParams, controls);
     updateBurnIndicator();
 
     if (status.completed) {
-        circBtn.innerText = 'CIRCULARIZE';
-        // Task 9.5: Show eccentricity for 3 seconds after completion
-        const dominant = getDominantBody(r, bodies, params.G);
+        setBtnLabel(circBtn, 'CIRCULARIZE');
+        // Show eccentricity for 3 seconds after completion
+        const dominant = getNearestBody(r, bodies);
         if (dominant) {
             const ecc = computeEccentricity(r, v, dominant.pos, dominant.m, params.G);
             showEccentricity(ecc);
         }
     } else if (status.fuelExhausted) {
-        // Task 9.4: Notify user of insufficient fuel
-        circBtn.innerText = 'CIRCULARIZE';
+        // Notify user of insufficient fuel
+        setBtnLabel(circBtn, 'CIRCULARIZE');
         showFuelExhaustedNotification(status.remainingDv);
     }
 
@@ -210,7 +225,7 @@ function showEccentricity(ecc) {
 
 function showFuelExhaustedNotification(remainingDv) {
     if (!burnIndicator) return;
-    burnIndicator.innerText = `⊘ FUEL OUT • Δv deficit: ${remainingDv.toFixed(2)} u/s`;
+    burnIndicator.innerText = `FUEL OUT - dV deficit: ${remainingDv.toFixed(2)} u/s`;
     burnIndicator.style.opacity = '1';
     burnIndicator.style.color = '#ff5252';
     if (eccentricityTimeout) clearTimeout(eccentricityTimeout);

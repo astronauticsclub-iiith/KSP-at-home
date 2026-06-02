@@ -1,60 +1,32 @@
-// ── Orbit Circularization Module ──────────────────────────────────────────────
+// Orbit Circularization Module
 
 /**
- * Compute the delta-v needed to circularize the current orbit.
- * Uses velocity RELATIVE TO the dominant body for proper orbital mechanics.
- * Positive = prograde burn needed, negative = retrograde.
+ * Determine which massive body the spacecraft is physically closest to.
+ * Circularization targets this body, so flying near the Moon circularizes
+ * around the Moon rather than always defaulting to Earth.
+ * Returns the body object { m, pos } or null if none found.
  */
-export function computeCircularizationDeltaV(pos, vel, bodyPos, bodyMass, G) {
-    const dx = pos.x - bodyPos.x;
-    const dy = pos.y - bodyPos.y;
-    const r = Math.sqrt(dx * dx + dy * dy);
-    const vCircular = Math.sqrt(G * bodyMass / r);
-
-    // Compute tangential speed (component of velocity perpendicular to radius)
-    // This is what matters for circularization, not total speed
-    const rDir = { x: dx / r, y: dy / r }; // radial unit vector (outward)
-    // Tangential direction: perpendicular to radial, in direction of motion
-    const vDotR = vel.x * rDir.x + vel.y * rDir.y; // radial component
-    const vTangX = vel.x - vDotR * rDir.x;
-    const vTangY = vel.y - vDotR * rDir.y;
-    const vTangential = Math.sqrt(vTangX * vTangX + vTangY * vTangY);
-
-    // Also need to kill radial velocity for true circularization
-    // But prograde/retrograde only affects tangential. Use normal for radial.
-    // For simplicity, return tangential deficit only — user can use RCS for radial.
-    return vCircular - vTangential;
-}
-
-/**
- * Task 9.2: Determine which body has the strongest gravitational pull at the current position.
- * Returns the body object { m, pos } that dominates, or null if none found.
- */
-export function getDominantBody(pos, bodies, G) {
-    let maxAcc = 0;
-    let dominant = null;
+export function getNearestBody(pos, bodies) {
+    let minDist = Infinity;
+    let nearest = null;
     for (const body of Object.values(bodies)) {
         if (body.m === 0) continue;
-        const dx = body.pos.x - pos.x;
-        const dy = body.pos.y - pos.y;
-        const r = Math.sqrt(dx * dx + dy * dy);
-        if (r < 0.01) continue;
-        const acc = G * body.m / (r * r);
-        if (acc > maxAcc) {
-            maxAcc = acc;
-            dominant = body;
+        const d = Math.hypot(body.pos.x - pos.x, body.pos.y - pos.y);
+        if (d < minDist) {
+            minDist = d;
+            nearest = body;
         }
     }
-    return dominant;
+    return nearest;
 }
 
 /**
- * Task 9.5: Compute orbital eccentricity for the current orbit around a body.
+ * Compute orbital eccentricity for the current orbit around a body.
  */
 export function computeEccentricity(pos, vel, bodyPos, bodyMass, G) {
     const r_vec = { x: pos.x - bodyPos.x, y: pos.y - bodyPos.y };
-    const r = Math.sqrt(r_vec.x ** 2 + r_vec.y ** 2);
-    const v = Math.sqrt(vel.x ** 2 + vel.y ** 2);
+    const r = Math.hypot(r_vec.x, r_vec.y);
+    const v = Math.hypot(vel.x, vel.y);
     const mu = G * bodyMass;
     const energy = (v * v) / 2 - mu / r;
     const h = r_vec.x * vel.y - r_vec.y * vel.x; // angular momentum (scalar, 2D)
@@ -63,126 +35,168 @@ export function computeEccentricity(pos, vel, bodyPos, bodyMass, G) {
 }
 
 /**
- * Task 9.3 & 9.4: CircularizationController
- * Manages the burn execution for orbit circularization.
+ * Compute the velocity correction needed to circularize the orbit at the
+ * current point, RELATIVE to the dominant body.
+ *
+ * The target is the circular-orbit velocity vector: magnitude sqrt(mu/r), in
+ * the current tangential direction, with ZERO radial component. Returning the
+ * error decomposed onto the craft's own thrust axes (along velocity and
+ * perpendicular to it) lets a controller null both the radial velocity and the
+ * tangential speed deficit — i.e. true circularization, not just a speed match.
+ *
+ * Pass bodyVel to circularize around a MOVING body (the Moon): the target is
+ * then bodyVel + circular velocity, so the orbit is circular relative to that
+ * body. Defaults to a stationary body (Earth).
+ *
+ * @returns {{ errAlong:number, errPerp:number, errMag:number }}
+ *   errAlong > 0 → burn prograde, < 0 → retrograde.
+ *   errPerp  > 0 → burn normal+,  < 0 → normal-.
+ */
+export function circularizationError(pos, vel, body, G, bodyVel = { x: 0, y: 0 }) {
+    const dx = pos.x - body.pos.x;
+    const dy = pos.y - body.pos.y;
+    const r = Math.hypot(dx, dy);
+    const rHat = { x: dx / r, y: dy / r };           // radial unit (outward)
+    const vCircular = Math.sqrt(G * body.m / r);
+
+    // Work in the body-relative frame for the tangential direction.
+    const rvx = vel.x - bodyVel.x;
+    const rvy = vel.y - bodyVel.y;
+    const vDotR = rvx * rHat.x + rvy * rHat.y;
+    let tx = rvx - vDotR * rHat.x;
+    let ty = rvy - vDotR * rHat.y;
+    const tMag = Math.hypot(tx, ty);
+    if (tMag > 1e-6) {
+        tx /= tMag; ty /= tMag;
+    } else {
+        // No tangential motion (purely radial): pick the counter-clockwise tangent.
+        tx = -rHat.y; ty = rHat.x;
+    }
+
+    // Target absolute velocity = body velocity + circular velocity. Error to it.
+    const ex = (bodyVel.x + vCircular * tx) - vel.x;
+    const ey = (bodyVel.y + vCircular * ty) - vel.y;
+    const errMag = Math.hypot(ex, ey);
+
+    // Decompose the error onto the craft's control axes (absolute velocity).
+    const speed = Math.hypot(vel.x, vel.y);
+    let vhx, vhy;
+    if (speed > 1e-6) { vhx = vel.x / speed; vhy = vel.y / speed; }
+    else { vhx = tx; vhy = ty; }
+    const nhx = -vhy, nhy = vhx; // normal+ direction (perpendicular-left to velocity)
+
+    return {
+        errAlong: ex * vhx + ey * vhy,
+        errPerp: ex * nhx + ey * nhy,
+        errMag,
+    };
+}
+
+/**
+ * CircularizationController
+ * Closed-loop burn controller for orbit circularization. Each frame it measures
+ * the remaining velocity error and thrusts along/perpendicular to velocity to
+ * cancel it, so it converges to a circular orbit from any starting point —
+ * including ones with significant radial velocity.
  */
 export class CircularizationController {
     constructor() {
         this.active = false;
         this.completed = false;
-        this.targetDv = 0;
-        this.accumulatedDv = 0;
-        this.burnDirection = null; // 'prograde' or 'retrograde'
         this.fuelExhausted = false;
+        this.targetDv = 0;     // initial error magnitude, for display
+        this.remainingDv = 0;  // live error magnitude, for display
     }
 
     /**
-     * Start a circularization burn.
+     * Begin circularizing the current orbit.
      * @param {object} pos - spacecraft position {x, y}
      * @param {object} vel - spacecraft velocity {x, y}
      * @param {object} bodies - celestial bodies map
-     * @param {object} params - simulation params (G, dt, etc.)
-     * @param {object} rocketParams - rocket config (thrust, Isp, fuelMass, dryMass)
-     * @param {object} controls - burn control flags (prograding, retrograding)
+     * @param {object} params - simulation params (G, dt, ...)
      */
-    start(pos, vel, bodies, params, rocketParams, controls) {
-        const dominant = getDominantBody(pos, bodies, params.G);
+    start(pos, vel, bodies, params) {
+        const dominant = getNearestBody(pos, bodies);
         if (!dominant) return;
 
-        const dv = computeCircularizationDeltaV(pos, vel, dominant.pos, dominant.m, params.G);
-
-        this.targetDv = Math.abs(dv);
-        this.accumulatedDv = 0;
-        this.burnDirection = dv >= 0 ? 'prograde' : 'retrograde';
         this.active = true;
         this.completed = false;
         this.fuelExhausted = false;
-
-        // Set initial burn direction
-        if (this.burnDirection === 'prograde') {
-            controls.prograding = true;
-            controls.retrograding = false;
-        } else {
-            controls.prograding = false;
-            controls.retrograding = true;
-        }
+        this.targetDv = circularizationError(pos, vel, dominant, params.G).errMag;
+        this.remainingDv = this.targetDv;
     }
 
     /**
-     * Called each frame while the burn is active.
-     * Accumulates applied delta-v and checks completion.
-     * @param {number} dt - time step
-     * @param {object} rocketParams - rocket config (thrust, Isp, fuelMass, dryMass)
-     * @param {object} controls - burn control flags
-     * @returns {object} status { active, completed, accumulatedDv, targetDv, fuelExhausted }
+     * Closed-loop step. Call once per frame while active.
+     * @returns {object} status
      */
-    update(dt, rocketParams, controls) {
-        if (!this.active) {
-            return this._status();
-        }
+    update(pos, vel, bodies, params, rocketParams, controls) {
+        if (!this.active) return this._status();
 
-        // Check if fuel is exhausted (Task 9.4)
         if (rocketParams.fuelMass <= 0) {
             this.fuelExhausted = true;
             this.active = false;
-            controls.prograding = false;
-            controls.retrograding = false;
+            this._allOff(controls);
             return this._status();
         }
 
-        // Compute dv applied this frame: dv = (thrust / mass) * dt
-        const mass = rocketParams.dryMass + rocketParams.fuelMass;
-        if (mass <= 0) {
-            this.fuelExhausted = true;
+        const dominant = getNearestBody(pos, bodies);
+        if (!dominant) {
             this.active = false;
-            controls.prograding = false;
-            controls.retrograding = false;
+            this._allOff(controls);
             return this._status();
         }
 
-        const dvThisFrame = (rocketParams.thrust / mass) * dt;
-        this.accumulatedDv += dvThisFrame;
+        const { errAlong, errPerp, errMag } = circularizationError(pos, vel, dominant, params.G);
+        this.remainingDv = errMag;
 
-        // Check if burn is complete
-        if (this.accumulatedDv >= this.targetDv) {
+        // Size the deadband to the delta-v one frame of full thrust delivers, so
+        // we stop instead of chattering once we can no longer improve.
+        const mass = rocketParams.dryMass + rocketParams.fuelMass;
+        const dvPerFrame = mass > 0 ? (rocketParams.thrust / mass) * params.dt : 0;
+        const deadband = Math.max(dvPerFrame * 1.5, 1e-4);
+
+        if (errMag <= deadband) {
             this.active = false;
             this.completed = true;
-            controls.prograding = false;
-            controls.retrograding = false;
+            this._allOff(controls);
             return this._status();
         }
 
-        // Keep burning in the correct direction
-        if (this.burnDirection === 'prograde') {
-            controls.prograding = true;
-            controls.retrograding = false;
-        } else {
-            controls.prograding = false;
-            controls.retrograding = true;
-        }
+        // Thrust toward the target velocity. Axes are independent, so prograde/
+        // retrograde and a normal burn can run together to correct both at once.
+        const gate = deadband * 0.3;
+        controls.prograding = errAlong > gate;
+        controls.retrograding = errAlong < -gate;
+        controls.normalPos = errPerp > gate;
+        controls.normalNeg = errPerp < -gate;
 
         return this._status();
     }
 
     /**
      * Cancel the burn immediately.
-     * @param {object} controls - burn control flags
      */
     cancel(controls) {
         this.active = false;
         this.completed = false;
+        this._allOff(controls);
+    }
+
+    _allOff(controls) {
         controls.prograding = false;
         controls.retrograding = false;
+        controls.normalPos = false;
+        controls.normalNeg = false;
     }
 
     _status() {
         return {
             active: this.active,
             completed: this.completed,
-            accumulatedDv: this.accumulatedDv,
-            targetDv: this.targetDv,
             fuelExhausted: this.fuelExhausted,
-            remainingDv: this.targetDv - this.accumulatedDv,
+            targetDv: this.targetDv,
+            remainingDv: this.remainingDv,
         };
     }
 }
