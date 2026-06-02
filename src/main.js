@@ -737,22 +737,30 @@ function animate(now = performance.now()) {
     } else {
         controls.enabled = true;
 
-        // Time warp: run multiple physics sub-steps per frame (keeps dt small so
-        // accuracy holds). Warp is suppressed while thrusting and during the
-        // autopilot phases that need per-step fidelity (window timing, burns,
-        // periapsis detection) — but allowed during COAST and HOLD so warp keeps
-        // working after a transfer / while alt-holding. Any frame that actually
-        // fires a burn (incl. an alt-hold correction) drops to 1x via `thrusting`.
-        const thrusting = STEP.controls.prograding || STEP.controls.retrograding
-            || STEP.controls.normalPos || STEP.controls.normalNeg;
-        const apPhase = Autopilot.getPhase();
-        const apPrecise = Autopilot.isActive() && (
-            apPhase === 'PHASING' || apPhase === 'TLI_BURN'
-            || apPhase === 'APPROACH' || apPhase === 'CIRCULARIZE');
-        const subSteps = (thrusting || apPrecise) ? 1 : Math.max(1, Math.round(timeWarp));
-        let stepResult = STEP.step();
-        for (let i = 1; i < subSteps && !stepResult.crashed; i++) {
+        // Time warp: advance physics in sub-steps (dt stays small so accuracy
+        // holds). The automated controllers (autopilot, circularize) run INSIDE
+        // the loop, so they correct on every sub-step and stay tight even at 50x
+        // — that's what lets alt-hold and the lunar capture warp cleanly. Only a
+        // MANUAL burn (a held key, no controller active) drops to 1x, so warp
+        // can't multiply a hand burn.
+        const autoActive = Autopilot.isActive() || UI.getCircController().active;
+        const manualThrust = !autoActive && (STEP.controls.prograding || STEP.controls.retrograding
+            || STEP.controls.normalPos || STEP.controls.normalNeg);
+        const subSteps = manualThrust ? 1 : Math.max(1, Math.round(timeWarp));
+
+        let stepResult;
+        for (let i = 0; i < subSteps; i++) {
             stepResult = STEP.step();
+            if (stepResult.crashed) break;
+            if (Autopilot.isActive()) {
+                Autopilot.update(
+                    STEP.params.dt,
+                    { x: stepResult.x, y: stepResult.y },
+                    { x: stepResult.vx, y: stepResult.vy },
+                    { x: stepResult.moonx, y: stepResult.moony },
+                );
+            }
+            UI.updateCircularization();
         }
         const { x, y, theta, vx, vy, ax, ay, moonx, moony, dt, fuelMass, crashed } = stepResult;
         POD.pod.position.x = x;
@@ -778,24 +786,12 @@ function animate(now = performance.now()) {
         // Update crash animation every frame
         updateCrashEffect();
 
-        // Autopilot update
-        Autopilot.update(
-            STEP.params.dt,
-            { x, y },
-            { x: vx, y: vy },
-            { x: moonx, y: moony }
-        );
-
-        // Update autopilot telemetry display
+        // Autopilot + circularize already advanced per sub-step above; here we
+        // just refresh their on-screen telemetry once per frame.
         updateAutopilotUI();
 
         // Update HUD
         UI.updateTelemetry({ vx, vy, ax, ay, dt, fuelMass, crashed });
-
-        // Update circularization burn each frame
-        if (!crashed) {
-            UI.updateCircularization();
-        }
 
         // velocity vector
         const vVec = new THREE.Vector3(vx, vy, 0);

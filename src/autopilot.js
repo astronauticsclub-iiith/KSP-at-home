@@ -27,6 +27,9 @@ export const PHASES = {
     CIRCULARIZE: 'CIRCULARIZE',
     HOLD: 'HOLD',
     ORBIT_ACHIEVED: 'ORBIT_ACHIEVED',
+    RTE_ESCAPE: 'RTE_ESCAPE',
+    RTE_BURN: 'RTE_BURN',
+    RTE_COAST: 'RTE_COAST',
 };
 
 const PHASE_TEXT = {
@@ -38,6 +41,9 @@ const PHASE_TEXT = {
     CIRCULARIZE: 'Circularizing orbit',
     HOLD: 'Alt-hold: maintaining orbit',
     ORBIT_ACHIEVED: 'Orbit achieved',
+    RTE_ESCAPE: 'Return: leaving lunar orbit',
+    RTE_BURN: 'Return burn: lowering Earth periapsis',
+    RTE_COAST: 'Coasting back to Earth',
 };
 
 function normalizeAngle(x) {
@@ -61,6 +67,7 @@ const state = {
     closestApproach: Infinity,
     periapsisReached: false,
     targetLunarR: 1.2,          // desired circular lunar-orbit radius
+    targetEarthR: 2,            // desired circular Earth-orbit radius (return)
     simTime: 0,                 // sim-seconds since engage
     tliTime: 0,                 // simTime at which the TLI burn started
     transferTime: 0,            // half-period of the transfer ellipse
@@ -125,6 +132,54 @@ function raisePeriapsis(pos, vel, moonPos) {
     else setBurn('normal-');
 }
 
+// Thrust to push the velocity toward direction (dx, dy), using whichever
+// prograde/retrograde + normal combination is available.
+function burnToward(dx, dy, vel) {
+    const s = Math.hypot(vel.x, vel.y) || 1;
+    const vhx = vel.x / s, vhy = vel.y / s;
+    const nhx = -vhy, nhy = vhx;
+    const along = dx * vhx + dy * vhy;
+    const perp = dx * nhx + dy * nhy;
+    const mag2 = Math.hypot(dx, dy) || 1;
+    const gate = 0.04 * mag2;
+    controls.prograding = along > gate;
+    controls.retrograding = along < -gate;
+    controls.normalPos = perp > gate;
+    controls.normalNeg = perp < -gate;
+    state.burnType = controls.prograding ? 'prograde'
+        : controls.retrograding ? 'retrograde'
+            : controls.normalPos ? 'normal+'
+                : controls.normalNeg ? 'normal-' : '';
+}
+
+// Apoapsis distance about the Moon (Infinity if unbound).
+function moonRelApoapsis(pos, vel, moonPos) {
+    const mv = getMoonVelocity(moonPos);
+    const rx = pos.x - moonPos.x, ry = pos.y - moonPos.y;
+    const vx = vel.x - mv.x, vy = vel.y - mv.y;
+    const r = Math.hypot(rx, ry);
+    const mu = params.G * bodies.moon.m;
+    if (mu <= 0) return Infinity;
+    const h = rx * vy - ry * vx;
+    const energy = (vx * vx + vy * vy) / 2 - mu / r;
+    if (energy >= 0) return Infinity;
+    const e = Math.sqrt(Math.max(0, 1 + (2 * energy * h * h) / (mu * mu)));
+    return (h * h / mu) / (1 - e);
+}
+
+// Periapsis distance about Earth (Earth is stationary, so absolute velocity).
+function earthPeriapsis(pos, vel) {
+    const dx = pos.x - bodies.earth.pos.x;
+    const dy = pos.y - bodies.earth.pos.y;
+    const r = Math.hypot(dx, dy);
+    const mu = params.G * bodies.earth.m;
+    const h = dx * vel.y - dy * vel.x;
+    const v2 = vel.x * vel.x + vel.y * vel.y;
+    const energy = v2 / 2 - mu / r;
+    const e = Math.sqrt(Math.max(0, 1 + (2 * energy * h * h) / (mu * mu)));
+    return { rp: (h * h / mu) / (1 + e), r };
+}
+
 function computeAvailableDv() {
     const mWet = rocketParams.dryMass + rocketParams.fuelMass;
     const mDry = rocketParams.dryMass;
@@ -162,11 +217,22 @@ export function engage(mode, pos, vel, opts = {}) {
     if (state.active && state.mode !== 'hold') return { success: false, reason: 'Already active' };
 
     resetTransient();
-    state.mode = mode === 'moon' ? 'moon' : 'circularize';
+    if (mode === 'moon') state.mode = 'moon';
+    else if (mode === 'earth') state.mode = 'earth';
+    else state.mode = 'circularize';
 
     if (state.mode === 'circularize') {
         state.active = true;
         state.phase = PHASES.CIRCULARIZE;
+        return { success: true };
+    }
+
+    if (state.mode === 'earth') {
+        // Return to Earth: drop the Earth periapsis to a low orbit, coast in,
+        // circularize. Works from a lunar orbit or anywhere out near the Moon.
+        state.targetEarthR = Number.isFinite(opts.earthR) ? opts.earthR : 2;
+        state.active = true;
+        state.phase = PHASES.RTE_ESCAPE;
         return { success: true };
     }
 
@@ -342,6 +408,60 @@ export function update(dt, pos, vel, moonPos) {
                 state.burnType = '';
             }
             break;
+
+        case PHASES.RTE_ESCAPE: {
+            // Leave lunar orbit with the MINIMUM burn: raise lunar apoapsis just
+            // past the SOI, then coast out. A minimal escape keeps Earth-relative
+            // velocity low, and since the Moon moves below Earth-circular speed,
+            // the craft then falls toward Earth on its own.
+            if (distToMoon > MOON_SOI) {
+                stopAllBurns();
+                state.phase = PHASES.RTE_BURN;
+            } else if (moonRelApoapsis(pos, vel, moonPos) < MOON_SOI * 1.15) {
+                setBurn('prograde');
+            } else {
+                stopAllBurns(); // coasting outward to leave the SOI
+            }
+            break;
+        }
+
+        case PHASES.RTE_BURN: {
+            // Outside the Moon now: trim the Earth periapsis to the target by
+            // adding/removing Earth-tangential velocity.
+            const earth = bodies.earth.pos;
+            const dx = pos.x - earth.x, dy = pos.y - earth.y;
+            const r = Math.hypot(dx, dy);
+            const { rp } = earthPeriapsis(pos, vel);
+            const target = state.targetEarthR;
+            state.remainingDv = Math.abs(rp - target);
+            const rHatx = dx / r, rHaty = dy / r;
+            const vDotR = vel.x * rHatx + vel.y * rHaty;
+            const tanx = vel.x - vDotR * rHatx; // Earth-tangential velocity
+            const tany = vel.y - vDotR * rHaty;
+            if (rp > target * 1.05) {
+                burnToward(-tanx, -tany, vel);   // lower periapsis
+            } else if (rp < target * 0.95) {
+                burnToward(tanx, tany, vel);      // raise periapsis (avoid impact)
+            } else {
+                stopAllBurns();
+                state.phase = PHASES.RTE_COAST;
+                state.closestApproach = r;
+                state.periapsisReached = false;
+            }
+            break;
+        }
+
+        case PHASES.RTE_COAST: {
+            stopAllBurns();
+            const earth = bodies.earth.pos;
+            const distEarth = dist(pos.x, pos.y, earth.x, earth.y);
+            if (distEarth < state.closestApproach) state.closestApproach = distEarth;
+            // Once near the target altitude and past periapsis, circularize.
+            if (distEarth < state.targetEarthR + 0.5 && distEarth > state.closestApproach + 0.02) {
+                state.phase = PHASES.CIRCULARIZE;
+            }
+            break;
+        }
     }
 
     updateEta(pos, vel, moonPos, distToMoon);
@@ -349,7 +469,9 @@ export function update(dt, pos, vel, moonPos) {
     // Fuel exhaustion safety during the powered transfer phases (not HOLD —
     // alt-hold simply coasts once it's out of fuel).
     if (rocketParams.fuelMass <= 0 &&
-        (state.phase === PHASES.TLI_BURN || state.phase === PHASES.APPROACH || state.phase === PHASES.CIRCULARIZE)) {
+        (state.phase === PHASES.TLI_BURN || state.phase === PHASES.APPROACH
+            || state.phase === PHASES.CIRCULARIZE || state.phase === PHASES.RTE_ESCAPE
+            || state.phase === PHASES.RTE_BURN)) {
         state.abortReason = 'FUEL EXHAUSTED';
         cancel();
     }
@@ -386,6 +508,17 @@ function updateEta(pos, vel, moonPos, distToMoon) {
         case PHASES.CIRCULARIZE:
             eta = 5;
             break;
+        case PHASES.RTE_ESCAPE:
+            eta = 40;
+            break;
+        case PHASES.RTE_BURN:
+            eta = 20 + state.remainingDv * 30;
+            break;
+        case PHASES.RTE_COAST: {
+            const dE = Math.hypot(pos.x - bodies.earth.pos.x, pos.y - bodies.earth.pos.y);
+            eta = 5 + Math.max(0, dE) * 2;
+            break;
+        }
         default:
             eta = 0; // HOLD / ORBIT_ACHIEVED / IDLE: already stable
     }
