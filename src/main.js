@@ -738,13 +738,18 @@ function animate(now = performance.now()) {
         controls.enabled = true;
 
         // Time warp: run multiple physics sub-steps per frame (keeps dt small so
-        // accuracy holds). Warp is suppressed while thrusting, and while the
-        // autopilot is doing anything other than coasting, so burns and the
-        // lunar periapsis detection can't overshoot between frames.
+        // accuracy holds). Warp is suppressed while thrusting and during the
+        // autopilot phases that need per-step fidelity (window timing, burns,
+        // periapsis detection) — but allowed during COAST and HOLD so warp keeps
+        // working after a transfer / while alt-holding. Any frame that actually
+        // fires a burn (incl. an alt-hold correction) drops to 1x via `thrusting`.
         const thrusting = STEP.controls.prograding || STEP.controls.retrograding
             || STEP.controls.normalPos || STEP.controls.normalNeg;
-        const apBusy = Autopilot.isActive() && Autopilot.getPhase() !== 'COAST';
-        const subSteps = (thrusting || apBusy) ? 1 : Math.max(1, Math.round(timeWarp));
+        const apPhase = Autopilot.getPhase();
+        const apPrecise = Autopilot.isActive() && (
+            apPhase === 'PHASING' || apPhase === 'TLI_BURN'
+            || apPhase === 'APPROACH' || apPhase === 'CIRCULARIZE');
+        const subSteps = (thrusting || apPrecise) ? 1 : Math.max(1, Math.round(timeWarp));
         let stepResult = STEP.step();
         for (let i = 1; i < subSteps && !stepResult.crashed; i++) {
             stepResult = STEP.step();
