@@ -485,55 +485,48 @@ controls.target.copy(POD.pod.position);
 const autopilotBtn = document.getElementById('autopilot-btn');
 const autopilotCancelBtn = document.getElementById('autopilot-cancel');
 const autopilotOrbitSelect = document.getElementById('autopilot-orbit-type');
+const moonAltitudeSelect = document.getElementById('moon-altitude');
 const autopilotStatusRow = document.getElementById('autopilot-status-row');
 const autopilotPhaseEl = document.getElementById('autopilot-phase');
+const altholdBtn = document.getElementById('althold-btn');
 
 if (autopilotBtn) {
     autopilotBtn.addEventListener('click', () => {
         const mode = autopilotOrbitSelect ? autopilotOrbitSelect.value : 'circularize';
-        const result = Autopilot.engage(mode, { x: STEP.r.x, y: STEP.r.y }, { x: STEP.v.x, y: STEP.v.y });
+        const lunarR = moonAltitudeSelect ? Number.parseFloat(moonAltitudeSelect.value) : 1.2;
+        const result = Autopilot.engage(mode, { x: STEP.r.x, y: STEP.r.y }, { x: STEP.v.x, y: STEP.v.y }, { lunarR });
         if (!result.success) {
-            // Flash the button to indicate failure
+            // Flash the button to indicate failure (UI re-syncs in updateAutopilotUI).
             autopilotBtn.style.borderColor = 'rgba(255, 82, 82, 0.6)';
             autopilotBtn.textContent = result.reason || 'FAILED';
             setTimeout(() => {
                 autopilotBtn.style.borderColor = '';
                 autopilotBtn.textContent = 'AUTOPILOT';
             }, 2500);
-        } else {
-            autopilotBtn.hidden = true;
-            if (autopilotOrbitSelect) autopilotOrbitSelect.hidden = true;
-            if (autopilotCancelBtn) autopilotCancelBtn.hidden = false;
-            // Show the transfer ellipse only when actually transferring to the Moon.
-            if (mode === 'moon') {
-                HOHMANN.show();
-                setHohmannLabel(true);
-            }
+        } else if (mode === 'moon') {
+            HOHMANN.show();
+            setHohmannLabel(true);
         }
     });
 }
 
 if (autopilotCancelBtn) {
-    autopilotCancelBtn.addEventListener('click', () => {
-        Autopilot.cancel();
-        resetAutopilotUI();
-    });
+    autopilotCancelBtn.addEventListener('click', () => Autopilot.cancel());
 }
 
-// Escape key cancels autopilot
+// Alt-hold: continuously hold the current circular altitude (toggle).
+function toggleAltHold() {
+    if (Autopilot.isHolding()) Autopilot.cancel();
+    else Autopilot.engageHold();
+}
+
+if (altholdBtn) altholdBtn.addEventListener('click', toggleAltHold);
+
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && Autopilot.isActive()) {
-        Autopilot.cancel();
-        resetAutopilotUI();
-    }
+    if (e.repeat) return;
+    if (e.key === 'Escape' && Autopilot.isActive()) Autopilot.cancel();
+    else if (e.key === 't' || e.key === 'T') toggleAltHold();
 });
-
-function resetAutopilotUI() {
-    if (autopilotBtn) { autopilotBtn.hidden = false; autopilotBtn.textContent = 'AUTOPILOT'; }
-    if (autopilotOrbitSelect) autopilotOrbitSelect.hidden = false;
-    if (autopilotCancelBtn) autopilotCancelBtn.hidden = true;
-    if (autopilotStatusRow) autopilotStatusRow.hidden = true;
-}
 
 // Hohmann transfer visualization wiring
 HOHMANN.initHohmann(scene);
@@ -639,29 +632,39 @@ function getFocusPoint(shipX, shipY, moonX, moonY) {
     return { x: shipX, y: shipY };
 }
 
+function fmtEta(seconds) {
+    const t = Math.max(0, Math.round(seconds));
+    const m = Math.floor(t / 60);
+    const s = t % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
+}
+
 function updateAutopilotUI() {
+    const active = Autopilot.isActive();
+
+    // Sync control visibility/state straight from the autopilot.
+    if (autopilotBtn) autopilotBtn.hidden = active;
+    if (autopilotOrbitSelect) autopilotOrbitSelect.hidden = active;
+    if (moonAltitudeSelect) moonAltitudeSelect.hidden = active;
+    if (autopilotCancelBtn) autopilotCancelBtn.hidden = !active;
+    if (altholdBtn) altholdBtn.classList.toggle('is-active', Autopilot.isHolding());
+
     const telemetry = Autopilot.getTelemetry();
-    if (Autopilot.isActive() || telemetry.phaseText !== '-') {
+    if (active || telemetry.phaseText !== '-') {
         if (autopilotStatusRow) autopilotStatusRow.hidden = false;
         if (autopilotPhaseEl) {
             const burnType = Autopilot.getBurnType();
-            const dvText = telemetry.remainingDv > 0 ? ` dV: ${telemetry.remainingDv.toFixed(2)}` : '';
+            const dvText = telemetry.remainingDv > 0 ? ` dV:${telemetry.remainingDv.toFixed(2)}` : '';
+            const etaText = telemetry.etaSeconds > 0 ? ` ETA ${fmtEta(telemetry.etaSeconds)}` : '';
             const burnText = burnType ? ` ${burnType.toUpperCase()}` : '';
-            autopilotPhaseEl.textContent = telemetry.phaseText + dvText + burnText;
+            autopilotPhaseEl.textContent = telemetry.phaseText + dvText + etaText + burnText;
         }
-    } else {
-        if (autopilotStatusRow) autopilotStatusRow.hidden = true;
+    } else if (autopilotStatusRow) {
+        autopilotStatusRow.hidden = true;
     }
 
-    // Update burn indicator to reflect autopilot burns
-    if (Autopilot.isActive()) {
-        UI.updateBurnIndicator();
-    }
-
-    // Reset UI when autopilot completes
-    if (!Autopilot.isActive() && autopilotBtn && autopilotBtn.hidden) {
-        resetAutopilotUI();
-    }
+    // Reflect autopilot burns in the burn indicator.
+    if (active) UI.updateBurnIndicator();
 }
 
 //animation loop

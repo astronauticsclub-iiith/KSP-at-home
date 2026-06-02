@@ -484,6 +484,16 @@ canvas {
 	color: var(--text-secondary);
 }
 
+.control-button.is-active {
+	border-color: rgba(0, 230, 118, 0.6);
+	color: var(--accent-nominal);
+	background: rgba(0, 230, 118, 0.1);
+}
+
+.control-button.is-active kbd {
+	color: var(--accent-nominal);
+}
+
 /* Mass Controls (live dry/fuel mass in control panel) */
 
 .mass-controls {

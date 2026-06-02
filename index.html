@@ -130,8 +130,14 @@
           <option value="circularize">Circularize Here</option>
           <option value="moon">Transfer to Moon</option>
         </select>
+        <select id="moon-altitude" class="control-select">
+          <option value="0.8">Low Lunar Orbit</option>
+          <option value="1.2" selected>Medium Lunar Orbit</option>
+          <option value="1.8">High Lunar Orbit</option>
+        </select>
         <button id="autopilot-btn" class="control-button">AUTOPILOT</button>
         <button id="autopilot-cancel" class="control-button control-button-subtle" hidden><span class="cb-label">CANCEL AP</span><kbd>Esc</kbd></button>
+        <button id="althold-btn" class="control-button"><span class="cb-label">ALT HOLD</span><kbd>T</kbd></button>
       </div>
       <div class="mass-controls">
         <div class="mass-controls-title">Mass (live)</div>
