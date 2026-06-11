@@ -1,5 +1,6 @@
+import { moon_update } from './body_update';
 import * as PARAMS from './control_params';
-
+import * as UPDATE from './body_update';
 export const controls = {
     retrograding: false,
     prograding: false,
@@ -77,10 +78,8 @@ export function step() {
         retrograde();
     }
 
-    // moon rotation
-    bodies.moon.pos.x = bodies.earth.pos.x + R * Math.cos(omega + Math.PI / 3);
-    bodies.moon.pos.y = bodies.earth.pos.y + R * Math.sin(omega + Math.PI / 3);
-    omega -= 0.0001;
+    UPDATE.moon_update(bodies);
+    UPDATE.earth_update(bodies);
 
     return {
         x: r.x,
@@ -92,6 +91,8 @@ export function step() {
         ay: ay_new,
         moonx: bodies.moon.pos.x,
         moony: bodies.moon.pos.y,
+        earthx:bodies.earth.pos.x,
+        earthy:bodies.earth.pos.y,
         dt: dt,
     };
 }

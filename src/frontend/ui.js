@@ -6,7 +6,7 @@ import * as PLANETS from '../entities/planets.js';
 // This file is responsible for updating the HUD and UI and Entites
 
 //--------Object Positions---------
-export function update_position(x, y, theta, moonx, moony) {
+export function update_position(x, y, theta, moonx, moony,earthx,earthy) {
     POD.pod.position.x = x;
     POD.pod.position.y = y;
     POD.pod.rotation.z = -Math.PI / 2 + theta;
@@ -15,6 +15,8 @@ export function update_position(x, y, theta, moonx, moony) {
 
     PLANETS.moon.position.x = moonx;
     PLANETS.moon.position.y = moony;
+    PLANETS.earth.position.x=earthx;
+    PLANETS.earth.position.y=earthy;
 }
 
 //-----HUD----------

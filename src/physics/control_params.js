@@ -14,20 +14,32 @@ gui.add(params, 'dt', 0.001, 0.05, 0.001);
 
 gui.add(params, 'moonMass', 0.01, 1, 0.01).onChange((v) => (bodies.moon.m = v)); // mass of earth is 1
 
-let r = { x: -3, y: -2, z: 0 }; // postion and velocities
+let r = { x: 2, y: -2, z: 0 }; // postion and velocities
 let v = { x: 0.707, y: 0, z: 0 }; //start with a stable orbital velocity
 
 export let R = 15; //distance between earth and moon
 
 let bodies = {
-    earth: { name: 'EARTH', m: 1, r: 1.05, pos: { x: -3, y: -4, z: 0 } },
+    earth: {
+        name: 'EARTH',
+        m: 1,
+        r: 1.05,
+        theta: 0,
+        pos: { x: 2, y: 0, z: 0 }
+    },
     moon: {
         name: 'MOON',
         m: params.moonMass,
         r: 0.42,
+        theta: 0,
         pos: { x: 6, y: 8, z: 0 },
     },
-    sun: { name: 'SUN', m: 0, pos: { x: -20, y: 0, z: 1 } }, // mass of sun dosent matter
+    sun: {
+        name: 'SUN',
+        m: 0,
+        theta: 0,
+        pos: { x: -22, y: 0, z: 1 }
+    },
 }; //artifically increase moons pull for now
 
 export { bodies };
