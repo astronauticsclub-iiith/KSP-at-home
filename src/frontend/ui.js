@@ -6,7 +6,7 @@ import * as PLANETS from '../entities/planets.js';
 // This file is responsible for updating the HUD and UI and Entites
 
 //--------Object Positions---------
-export function update_position(x, y, theta, moonx, moony,earthx,earthy) {
+export function update_position(x, y, theta, moonx, moony, earthx, earthy) {
     POD.pod.position.x = x;
     POD.pod.position.y = y;
     POD.pod.rotation.z = -Math.PI / 2 + theta;
@@ -15,8 +15,8 @@ export function update_position(x, y, theta, moonx, moony,earthx,earthy) {
 
     PLANETS.moon.position.x = moonx;
     PLANETS.moon.position.y = moony;
-    PLANETS.earth.position.x=earthx;
-    PLANETS.earth.position.y=earthy;
+    PLANETS.earth.position.x = earthx;
+    PLANETS.earth.position.y = earthy;
 }
 
 //-----HUD----------
@@ -67,5 +67,24 @@ tra_btn.addEventListener('click', () => {
         const attr = trajectory_Geometry.attributes.position;
         trajectory_Geometry.setDrawRange(0, 0);
         attr.needsUpdate = true;
+    }
+});
+
+// Timer
+
+const timer = document.getElementById('timer');
+
+const start_time = Date.now() / 1000;
+
+function update_timer() {
+    const t = Date.now() / 1000 - start_time;
+    timer.innerText = `Timer: ${t.toPrecision(2)}`;
+}
+setInterval(update_timer, 250);
+
+// Keybindings
+window.addEventListener('keydown', function (event) {
+    if (event.key.toLowerCase() === 'r') {
+        location.reload();
     }
 });

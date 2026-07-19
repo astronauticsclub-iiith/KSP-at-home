@@ -68,10 +68,11 @@ PATH.predict_trajectory_init(); //start trajectory
 
 //animation loop
 function animate() {
-    const { x, y, theta, vx, vy, ax, ay, moonx, moony,earthx,earthy, dt } = STEP.step();
+    const { x, y, theta, vx, vy, ax, ay, moonx, moony, earthx, earthy, dt } =
+        STEP.step();
 
     //Update planet Positions
-    UI.update_position(x, y, theta, moonx, moony,earthx,earthy);
+    UI.update_position(x, y, theta, moonx, moony, earthx, earthy);
     // Update HUD
     UI.updateTelemetry({ vx, vy, ax, ay, dt });
 

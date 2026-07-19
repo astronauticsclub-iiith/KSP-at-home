@@ -25,7 +25,7 @@ let bodies = {
         m: 1,
         r: 1.05,
         theta: 0,
-        pos: { x: 2, y: 0, z: 0 }
+        pos: { x: 2, y: 0, z: 0 },
     },
     moon: {
         name: 'MOON',
@@ -38,7 +38,7 @@ let bodies = {
         name: 'SUN',
         m: 0,
         theta: 0,
-        pos: { x: -22, y: 0, z: 1 }
+        pos: { x: -22, y: 0, z: 1 },
     },
 }; //artifically increase moons pull for now
 

@@ -1,7 +1,7 @@
 import * as MAN from '../physics/maneuver.js';
 import * as POD from './pod.js';
 import * as PARAMS from '../physics/control_params.js';
-import * as UPDATE from '../physics/body_update.js'
+import * as UPDATE from '../physics/body_update.js';
 export const pathLen = 2000; // predict trajectory 2000 steps ahead
 export const stateThreshold = 1e-5; // threshold for state comparison
 
@@ -21,16 +21,16 @@ export function predict_trajectory_init() {
     let pseudo_bodies = {
         earth: {
             m: PARAMS.bodies.earth.m,
-            theta:PARAMS.bodies.earth.theta,
+            theta: PARAMS.bodies.earth.theta,
             pos: {
                 x: PARAMS.bodies.earth.pos.x,
                 y: PARAMS.bodies.earth.pos.y,
-                z: PARAMS.bodies.earth.pos.z
-            }
+                z: PARAMS.bodies.earth.pos.z,
+            },
         },
         moon: {
             m: PARAMS.params.moonMass,
-            theta:PARAMS.bodies.moon.theta,
+            theta: PARAMS.bodies.moon.theta,
             pos: {
                 x: PARAMS.bodies.moon.pos.x,
                 y: PARAMS.bodies.moon.pos.y,
@@ -39,12 +39,12 @@ export function predict_trajectory_init() {
         },
         sun: {
             m: PARAMS.bodies.sun.m,
-            theta:PARAMS.bodies.sun.theta,
+            theta: PARAMS.bodies.sun.theta,
             pos: {
                 x: PARAMS.bodies.sun.pos.x,
                 y: PARAMS.bodies.sun.pos.y,
-                z: PARAMS.bodies.sun.pos.z
-            }
+                z: PARAMS.bodies.sun.pos.z,
+            },
         },
     };
     let omega = MAN.omega;
@@ -67,7 +67,6 @@ export function predict_trajectory_init() {
             moony: pseudo_bodies.moon.pos.y,
         };
 
-
         //Store current state
         previousStates.push(currentState);
 
@@ -88,8 +87,6 @@ export function predict_trajectory_init() {
             x: pseudo_r.x,
             y: pseudo_r.y,
         });
-
-        
     }
 }
 

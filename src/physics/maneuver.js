@@ -91,8 +91,8 @@ export function step() {
         ay: ay_new,
         moonx: bodies.moon.pos.x,
         moony: bodies.moon.pos.y,
-        earthx:bodies.earth.pos.x,
-        earthy:bodies.earth.pos.y,
+        earthx: bodies.earth.pos.x,
+        earthy: bodies.earth.pos.y,
         dt: dt,
     };
 }

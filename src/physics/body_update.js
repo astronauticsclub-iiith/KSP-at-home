@@ -1,9 +1,11 @@
-let R=15 // earth moon distance
-let Rs=24 // earth sun distance
+let R = 15; // earth moon distance
+let Rs = 24; // earth sun distance
 
 export function moon_update(bodies) {
-    bodies.moon.pos.x = bodies.earth.pos.x + R * Math.cos(bodies.moon.theta + Math.PI / 3);
-    bodies.moon.pos.y = bodies.earth.pos.y + R * Math.sin(bodies.moon.theta + Math.PI / 3);
+    bodies.moon.pos.x =
+        bodies.earth.pos.x + R * Math.cos(bodies.moon.theta + Math.PI / 3);
+    bodies.moon.pos.y =
+        bodies.earth.pos.y + R * Math.sin(bodies.moon.theta + Math.PI / 3);
     bodies.moon.theta -= 0.0001;
 }
 
