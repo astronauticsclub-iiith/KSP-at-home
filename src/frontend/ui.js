@@ -78,11 +78,11 @@ const start_time = Date.now() / 1000;
 
 function update_timer() {
     const t = Date.now() / 1000 - start_time;
-    timer.innerText = `Timer: ${t.toPrecision(2)}`;
+    timer.innerText = `Timer: ${t.toPrecision(3)}`;
 }
 setInterval(update_timer, 250);
 
-// Keybindings
+//---------- Keybindings ----------
 window.addEventListener('keydown', function (event) {
     if (event.key.toLowerCase() === 'r') {
         location.reload();
