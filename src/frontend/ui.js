@@ -74,7 +74,11 @@ tra_btn.addEventListener('click', () => {
 
 const timer = document.getElementById('timer');
 
-const start_time = Date.now() / 1000;
+export let start_time = Date.now() / 1000;
+
+export function reset_timer() {
+  start_time = Date.now() / 1000;
+}
 
 function update_timer() {
     const t = Date.now() / 1000 - start_time;

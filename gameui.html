@@ -114,6 +114,61 @@
 
     </div>
   </div>
+  <!-- ------------------------------------------ -->
+
+  <div id="tutorial-popup" class="fixed inset-0 z-50
+             flex items-center justify-center
+             bg-black/70">
+
+    <div class="border border-green-500
+               bg-black/95
+               max-w-md
+               p-6
+               text-green-400
+               font-mono
+               leading-relaxed">
+
+      <div class="mb-3 border-b border-green-500 pb-2 text-lg">
+        MISSION BRIEFING
+      </div>
+
+      <p class="mb-3">
+        Transmission received. Earth is falling apart resources are gone, the surface is failing, and there is no time
+        left to wait.
+      </p>
+
+      <p class="mb-3">
+        You are the last line of defense against extinction. A colony ship sits fueled and waiting, but it needs a
+        proven flight path before launch.
+      </p>
+
+      <p class="mb-6">
+        Your first mission: reach the Moon. Everything that comes after depends on
+        you.
+      </p>
+
+      <button id="tutorial-close" class="w-full
+                   border border-green-500
+                   px-4 py-2
+                   hover:bg-green-500/10
+                   active:bg-green-500/20
+                   transition">
+        BEGIN MISSION
+      </button>
+
+    </div>
+  </div>
+
+  <script type="module">
+    import { start_time, reset_timer } from './src/frontend/ui.js'
+
+    document.getElementById('tutorial-close').addEventListener('click', () => {
+      document.getElementById('tutorial-popup').hidden = true;
+      reset_timer();
+    });
+  </script>
+
+  <!-- ---------------------------- -->
 
   <div id="crash-overlay" class="crash-overlay" hidden>
     <div class="crash-panel">

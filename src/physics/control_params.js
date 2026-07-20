@@ -36,7 +36,8 @@ let bodies = {
     },
     sun: {
         name: 'SUN',
-        m: 0,
+        m: 1,
+        r: 2,
         theta: 0,
         pos: { x: -22, y: 0, z: 1 },
     },
