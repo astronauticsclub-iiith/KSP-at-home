@@ -18,35 +18,16 @@ export function predict_trajectory_init() {
     let pseudo_r = { x: PARAMS.r.x, y: PARAMS.r.y, z: PARAMS.r.z };
     let pseudo_v = { x: PARAMS.v.x, y: PARAMS.v.y, z: PARAMS.v.z };
 
-    let pseudo_bodies = {
-        earth: {
-            m: PARAMS.bodies.earth.m,
-            theta: PARAMS.bodies.earth.theta,
-            pos: {
-                x: PARAMS.bodies.earth.pos.x,
-                y: PARAMS.bodies.earth.pos.y,
-                z: PARAMS.bodies.earth.pos.z,
-            },
-        },
-        moon: {
-            m: PARAMS.params.moonMass,
-            theta: PARAMS.bodies.moon.theta,
-            pos: {
-                x: PARAMS.bodies.moon.pos.x,
-                y: PARAMS.bodies.moon.pos.y,
-                z: PARAMS.bodies.moon.pos.z,
-            },
-        },
-        sun: {
-            m: PARAMS.bodies.sun.m,
-            theta: PARAMS.bodies.sun.theta,
-            pos: {
-                x: PARAMS.bodies.sun.pos.x,
-                y: PARAMS.bodies.sun.pos.y,
-                z: PARAMS.bodies.sun.pos.z,
-            },
-        },
-    };
+    // Build pseudo_bodies dynamically from whatever bodies are active this level.
+    // Bodies with m=0 are already ignored by acc(), so no special filtering needed.
+    let pseudo_bodies = {};
+    for (const [name, body] of Object.entries(PARAMS.bodies)) {
+        pseudo_bodies[name] = {
+            m: body.m,
+            theta: body.theta,
+            pos: { x: body.pos.x, y: body.pos.y, z: body.pos.z },
+        };
+    }
     let omega = MAN.omega;
     let R = PARAMS.R;
     let dt = PARAMS.params.dt;
@@ -63,8 +44,8 @@ export function predict_trajectory_init() {
             vx: pseudo_v.x,
             vy: pseudo_v.y,
             vz: pseudo_v.z,
-            moonx: pseudo_bodies.moon.pos.x,
-            moony: pseudo_bodies.moon.pos.y,
+            moonx: pseudo_bodies.moon?.pos.x,
+            moony: pseudo_bodies.moon?.pos.y,
         };
 
         //Store current state

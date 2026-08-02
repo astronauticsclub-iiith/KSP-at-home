@@ -20,10 +20,8 @@ export { pod };
 import { pathLen } from './trajectory.js';
 
 export const trajectory_Geometry = new THREE.BufferGeometry();
-const trajectory_Material = new THREE.PointsMaterial({
+const trajectory_Material = new THREE.LineBasicMaterial({
     color: 0x00ff00,
-    size: 0.5,
-    sizeAttenuation: false,
 });
 
 // intialize attibutes to pick up from
@@ -34,5 +32,5 @@ trajectory_Geometry.setAttribute(
     new THREE.BufferAttribute(positions, 3)
 );
 
-const trajectory = new THREE.Points(trajectory_Geometry, trajectory_Material);
+const trajectory = new THREE.Line(trajectory_Geometry, trajectory_Material);
 export { trajectory };

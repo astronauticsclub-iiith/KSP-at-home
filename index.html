@@ -149,9 +149,121 @@
     h1 { font-size: 2.25rem; }
     .level-btn { width: 160px; padding: 2rem 1rem; }
   }
+
+  /* ── Login UI ─────────────────────────────────── */
+  #login-area {
+    position: fixed;
+    top: 1.25rem;
+    right: 1.5rem;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: system-ui, sans-serif;
+  }
+
+  .login-pill {
+    padding: 0.4rem 1.1rem;
+    border: 1px solid rgba(255,255,255,0.28);
+    background: rgba(255,255,255,0.04);
+    color: #fff;
+    font-size: 0.78rem;
+    letter-spacing: 0.07em;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.2s, border-color 0.2s;
+    font-family: inherit;
+  }
+  .login-pill:hover { background: rgba(255,255,255,0.11); border-color: rgba(255,255,255,0.6); }
+
+  #pilot-name {
+    font-size: 0.8rem;
+    opacity: 0.65;
+    letter-spacing: 0.04em;
+  }
+
+  /* Modal backdrop */
+  #login-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(0,0,0,0.72);
+    justify-content: center;
+    align-items: center;
+  }
+  #login-modal.open { display: flex; }
+
+  #login-panel {
+    background: #09070f;
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 14px;
+    padding: 2.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+    min-width: 300px;
+    text-align: center;
+  }
+
+  #login-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    opacity: 0.55;
+  }
+
+  #username-input {
+    width: 100%;
+    padding: 0.65rem 1rem;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 7px;
+    color: #fff;
+    font-size: 1rem;
+    outline: none;
+    text-align: center;
+    font-family: inherit;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+  }
+  #username-input::placeholder { opacity: 0.28; }
+  #username-input:focus { border-color: rgba(255,255,255,0.55); }
+
+  #login-confirm {
+    width: 100%;
+    padding: 0.65rem;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 7px;
+    color: #fff;
+    font-size: 0.82rem;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-family: inherit;
+  }
+  #login-confirm:hover { background: rgba(255,255,255,0.14); }
 </style>
 </head>
 <body>
+
+  <!-- Login button (top-right) -->
+  <div id="login-area">
+    <span id="pilot-name" style="display:none"></span>
+    <button id="change-btn" class="login-pill" style="display:none">CHANGE</button>
+    <button id="login-btn" class="login-pill">LOGIN</button>
+  </div>
+
+  <!-- Login modal -->
+  <div id="login-modal">
+    <div id="login-panel">
+      <div id="login-label">PILOT IDENTITY</div>
+      <input id="username-input" type="text" placeholder="Enter callsign..." maxlength="32" autocomplete="off">
+      <button id="login-confirm">CONFIRM</button>
+    </div>
+  </div>
 
   <div class="stars"></div>
 
@@ -162,16 +274,58 @@
     <div class="underline"></div>
 
     <div class="levels">
-      <a href="gameui.html" class="level-btn">
+      <a href="gameui.html?level=1" class="level-btn">
         Level 1
         <span class="sub">Start here</span>
       </a>
-      <a href="level2.html" class="level-btn">
+      <a href="gameui.html?level=2" class="level-btn">
         Level 2
         <span class="sub">Continue</span>
       </a>
+      <a href="gameui.html?level=3" class="level-btn">
+        Level 3
+        <span class="sub">Escape</span>
+      </a>
     </div>
   </div>
+
+  <script>
+    const KEY = 'ksp_username';
+
+    function renderAuth() {
+      const name = localStorage.getItem(KEY);
+      document.getElementById('login-btn').style.display  = name ? 'none' : '';
+      document.getElementById('pilot-name').style.display = name ? '' : 'none';
+      document.getElementById('change-btn').style.display = name ? '' : 'none';
+      if (name) document.getElementById('pilot-name').textContent = '\u{1F9D1}\u200D\u{1F680} ' + name;
+    }
+
+    function openModal() {
+      document.getElementById('username-input').value = '';
+      document.getElementById('login-modal').classList.add('open');
+      setTimeout(() => document.getElementById('username-input').focus(), 50);
+    }
+
+    function confirmLogin() {
+      const name = document.getElementById('username-input').value.trim().slice(0, 32);
+      if (!name) { document.getElementById('username-input').focus(); return; }
+      localStorage.setItem(KEY, name);
+      document.getElementById('login-modal').classList.remove('open');
+      renderAuth();
+    }
+
+    document.getElementById('login-btn').onclick  = openModal;
+    document.getElementById('change-btn').onclick  = openModal;
+    document.getElementById('login-confirm').onclick = confirmLogin;
+    document.getElementById('login-modal').onclick = e => {
+      if (e.target.id === 'login-modal') e.target.classList.remove('open');
+    };
+    document.getElementById('username-input').onkeydown = e => {
+      if (e.key === 'Enter') confirmLogin();
+    };
+
+    renderAuth();
+  </script>
 
 </body>
 </html>

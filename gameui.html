@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
   <title>KSP at Home</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="mobile.css">
 </head>
 <style>
   body {
@@ -32,6 +34,10 @@
 </style>
 
 <body class="m-0 overflow-hidden bg-black text-green-400 font-mono">
+  <div id="rotate-overlay">
+    <div class="icon">Rotate</div>
+    <div>Rotate your device to landscape to continue</div>
+  </div>
 
   <div class="fixed inset-0 z-10 pointer-events-none">
 
@@ -112,6 +118,16 @@
         <span id="timestep">-</span>
       </div>
 
+      <div class="flex justify-between">
+        <span>SCORE</span>
+        <span id="score">-</span>
+      </div>
+
+      <div class="flex justify-between">
+        <span>ORBIT</span>
+        <span id="orbit-timer">-</span>
+      </div>
+
     </div>
   </div>
   <!-- ------------------------------------------ -->
@@ -132,20 +148,13 @@
         MISSION BRIEFING
       </div>
 
-      <p class="mb-3">
-        Transmission received. Earth is falling apart resources are gone, the surface is failing, and there is no time
-        left to wait.
-      </p>
+      <!-- Populated dynamically by ui.js setBriefing() from level.json -->
+      <div id="briefing-body"></div>
 
-      <p class="mb-3">
-        You are the last line of defense against extinction. A colony ship sits fueled and waiting, but it needs a
-        proven flight path before launch.
-      </p>
-
-      <p class="mb-6">
-        Your first mission: reach the Moon. Everything that comes after depends on
-        you.
-      </p>
+      <!-- Destination callout, populated by setBriefing() -->
+      <div class="mb-6 text-green-300 text-sm">
+        DESTINATION: <span id="briefing-destination"></span>
+      </div>
 
       <button id="tutorial-close" class="w-full
                    border border-green-500
@@ -160,22 +169,53 @@
   </div>
 
   <script type="module">
-    import { start_time, reset_timer } from './src/frontend/ui.js'
+    import { reset_timer } from './src/frontend/ui.js'
 
     document.getElementById('tutorial-close').addEventListener('click', () => {
       document.getElementById('tutorial-popup').hidden = true;
       reset_timer();
+      window.dispatchEvent(new Event('missionStart'));
     });
   </script>
 
-  <!-- ---------------------------- -->
+  <!-- Win overlay -->
+  <div id="win-overlay" class="win-overlay" hidden>
+    <div class="win-panel">
+      <div class="win-title">MISSION COMPLETE</div>
+      <div id="win-stats" class="win-stats"></div>
+      <a href="index.html"
+         class="w-full
+                border border-green-500
+                bg-black/80
+                px-6 py-3
+                text-green-400
+                font-mono
+                text-center
+                hover:bg-green-500/10
+                transition">
+        RETURN TO HOME
+      </a>
+    </div>
+  </div>
+
+  <!-- Crash overlay -->
 
   <div id="crash-overlay" class="crash-overlay" hidden>
     <div class="crash-panel">
       <div id="crash-message" class="crash-message">MISSION FAILED</div>
       <div id="crash-target" class="crash-target"></div>
-      <button id="restart-btn" class="launch-button">RESTART MISSION</button>
-      <span class="crash-hint">Press <kbd>R</kbd> to restart</span>
+      <button id="restart-btn" class="launch-button
+      border border-green-500
+      bg-black/80
+      px-6 py-3
+      text-green-400
+      font-mono
+      hover:bg-green-500/10
+      active:bg-green-500/20
+      transition">
+        RESTART MISSION
+      </button>
+      <span class=" crash-hint">Press <kbd>R</kbd> to restart</span>
     </div>
   </div>
 

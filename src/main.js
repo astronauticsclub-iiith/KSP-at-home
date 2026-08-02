@@ -1,3 +1,4 @@
+
 import * as THREE from 'three'; // 3D objects API
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'; // add zoom features
 
@@ -11,6 +12,9 @@ import * as UI from './frontend/ui.js';
 
 import * as STEP from './physics/maneuver.js'; // Orbit Equations and Animation loop
 import * as COLLISION from './physics/collision.js';
+import * as PARAMS from './physics/control_params.js';
+import * as WIN from './physics/win_condition.js';
+import * as SCORE from './frontend/score.js';
 
 const scene = new THREE.Scene();
 
@@ -22,7 +26,7 @@ const camera = new THREE.PerspectiveCamera(
     1000
 );
 
-camera.position.set(0, 0, 15);
+// camera position is set per-level after the config loads (below)
 const renderer = new THREE.WebGLRenderer();
 
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -30,18 +34,32 @@ document.body.appendChild(renderer.domElement);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 
+//--------------LEVEL SETUP----------------------
+
+const levelRes = await fetch('/KSP-at-home/level.json');
+const allLevels = await levelRes.json();
+const levelCfg = allLevels[UI.level] ?? allLevels['1'];
+
+// Init physics state: mutates r, v, bodies and sets dynamicBodies flag
+PARAMS.initLevel(levelCfg);
+
+// Populate the mission briefing popup from level config
+UI.setBriefing(levelCfg.briefing, levelCfg.destination);
+
 //--------------SCENE----------------------
 
-//planets
-scene.add(PLANETS.earth);
-scene.add(PLANETS.moon);
-scene.add(PLANETS.sun);
+// Add only the planet meshes listed in this level's activeBodies
+for (const name of levelCfg.activeBodies) {
+    if (PLANETS.planetMeshes[name]) {
+        scene.add(PLANETS.planetMeshes[name]);
+    }
+}
 
 // pod
 scene.add(POD.pod);
 scene.add(POD.trajectory);
 
-//sunlight
+// sunlight (always present — illuminates from sun's world position)
 scene.add(PLANETS.sunlight);
 
 // lights
@@ -57,12 +75,17 @@ loader.load('assets/bg.webp', (texture) => {
 // velocity vectors
 scene.add(VEC.velArrow);
 
+// Camera: position x/y matches the target so we look straight-on (true 2D)
+const camTarget = levelCfg.cameraTarget ?? { x: 0, y: 4 };
+const camZ = levelCfg.cameraZ ?? 15;
+camera.position.set(camTarget.x, camTarget.y, camZ);
+
 //add zoom features
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableRotate = false; //2D only
 controls.enableDamping = true;
 controls.zoomToCursor = true;
-controls.target.set(0, 4, 0);
+controls.target.set(camTarget.x, camTarget.y, 0);
 controls.update();
 PATH.predict_trajectory_init(); //start trajectory
 
@@ -83,6 +106,49 @@ function animate() {
         PATH.trajectory_UI_update();
     }
 
+    // Elapsed real time since mission start
+    const elapsed = Date.now() / 1000 - UI.start_time;
+
+    // Continuous fuel drain while any thruster is held
+    if (STEP.controls.prograding || STEP.controls.retrograding) {
+        SCORE.addHoldCost();
+    }
+
+    // Live score in telemetry
+    SCORE.updateScoreHUD(elapsed);
+
+    // Orbit countdown HUD
+    const orbitEl = document.getElementById('orbit-timer');
+    if (orbitEl) {
+        if (WIN.winState.inOrbitZone) {
+            const remaining = Math.max(
+                0,
+                WIN.WIN_DURATION_SECONDS - WIN.winState.orbitTimer
+            ).toFixed(1);
+            orbitEl.innerText = `${remaining}s`;
+            orbitEl.classList.add('in-zone');
+        } else {
+            orbitEl.innerText = '-';
+            orbitEl.classList.remove('in-zone');
+        }
+    }
+
+    // Win check
+    const won = WIN.checkWin(
+        PARAMS.r,
+        PARAMS.bodies,
+        levelCfg.destination,
+        levelCfg.orbitRadius,
+        STEP.controls.prograding || STEP.controls.retrograding
+    );
+
+    if (won) {
+        const payload = SCORE.buildScorePayload(UI.level, elapsed);
+        UI.showWinScreen(payload);
+        renderer.render(scene, camera); // final frame
+        return; // stop loop
+    }
+
     // check for collisions
     COLLISION.collision_status();
     if (COLLISION.crashState.crashed == true) {
@@ -96,4 +162,8 @@ function animate() {
     requestAnimationFrame(animate);
 }
 
-animate();
+
+// Wait for the player to dismiss the mission briefing before starting the sim.
+// The 'missionStart' event is dispatched by the BEGIN MISSION button in gameui.html.
+window.addEventListener('missionStart', () => { animate(); }, { once: true });
+

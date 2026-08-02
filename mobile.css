@@ -1,0 +1,102 @@
+/* mobile.css */
+
+button,
+#tutorial-close,
+#restart-btn,
+.level-btn {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+button,
+#tutorial-close,
+#restart-btn,
+.level-btn,
+#ui,
+#telemetry {
+    -webkit-user-select: none;
+    /* Safari/iOS */
+    -moz-user-select: none;
+    /* older Firefox */
+    user-select: none;
+    /* standard */
+}
+
+#rotate-overlay {
+    display: none;
+}
+
+@media screen and (max-width: 900px) and (orientation: portrait) {
+    #rotate-overlay {
+        display: flex;
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background: #000;
+        color: #4ade80;
+        font-family: monospace;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 5vw;
+    }
+
+    #rotate-overlay .icon {
+        font-size: 8vw;
+        margin-bottom: 3vh;
+        animation: rotate-hint 1.5s ease-in-out infinite;
+    }
+
+    @keyframes rotate-hint {
+
+        0%,
+        100% {
+            transform: rotate(0deg);
+        }
+
+        50% {
+            transform: rotate(90deg);
+        }
+    }
+
+    body>*:not(#rotate-overlay) {
+        display: none !important;
+    }
+}
+
+/* landscape mobile: everything sized off vh/vw only */
+@media screen and (max-width: 900px) {
+    #ui .absolute.top-4.left-4 {
+        top: 1.5vh;
+        left: 1.5vw;
+        gap: 1vh;
+    }
+
+    #ui button,
+    #timer {
+        width: 20vw;
+        padding: 1vh 1.5vw;
+        font-size: 4vh;
+    }
+
+    #telemetry {
+        width: 35vw;
+        padding: 1.5vh 1.5vw;
+        font-size: 1.8vh;
+        line-height: 1.4;
+        bottom: 1.5vh;
+        left: 1.5vw;
+    }
+
+    #tutorial-popup>div {
+        width: 85vw;
+        max-width: 85vw;
+        padding: 3vh 3vw;
+        font-size: 2.2vh;
+    }
+
+    #tutorial-popup .text-lg {
+        font-size: 2.6vh;
+    }
+}

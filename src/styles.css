@@ -24,3 +24,65 @@
 
     color: white;
 }
+
+/* Win overlay — same structure as crash, green theme */
+.win-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.75);
+    z-index: 9999;
+}
+
+.win-panel {
+    background: black;
+    border: 2px solid #22c55e;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    color: #4ade80;
+    font-family: monospace;
+    min-width: 300px;
+    text-align: center;
+}
+
+.win-title {
+    font-size: 1.25rem;
+    letter-spacing: 0.15em;
+    border-bottom: 1px solid #22c55e;
+    padding-bottom: 0.75rem;
+    width: 100%;
+}
+
+.win-stats {
+    width: 100%;
+    font-size: 0.85rem;
+    line-height: 2.2;
+}
+
+.win-stat-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 2rem;
+}
+
+.win-stat-value {
+    color: #86efac;
+    font-weight: bold;
+}
+
+/* Orbit countdown pulses green when active */
+#orbit-timer.in-zone {
+    color: #86efac;
+    animation: orbit-pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes orbit-pulse {
+    from { opacity: 0.6; }
+    to   { opacity: 1.0; }
+}
+

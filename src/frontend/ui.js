@@ -2,6 +2,7 @@ import { controls } from '../physics/maneuver.js';
 import { trajectory_Geometry } from '../entities/pod.js';
 import * as POD from '../entities/pod.js';
 import * as PLANETS from '../entities/planets.js';
+import { addBuyIn } from './score.js';
 
 // This file is responsible for updating the HUD and UI and Entites
 
@@ -36,6 +37,7 @@ export function updateTelemetry({ vx, vy, ax, ay, dt }) {
 
 const probtn = document.getElementById('prograde');
 probtn.addEventListener('pointerdown', () => {
+    addBuyIn(); // one-time activation cost per press
     controls.prograding = true;
 });
 
@@ -45,6 +47,7 @@ probtn.addEventListener('pointerup', () => {
 
 const retrobtn = document.getElementById('retrograde');
 retrobtn.addEventListener('pointerdown', () => {
+    addBuyIn(); // one-time activation cost per press
     controls.retrograding = true;
 });
 
@@ -77,7 +80,7 @@ const timer = document.getElementById('timer');
 export let start_time = Date.now() / 1000;
 
 export function reset_timer() {
-  start_time = Date.now() / 1000;
+    start_time = Date.now() / 1000;
 }
 
 function update_timer() {
@@ -92,3 +95,108 @@ window.addEventListener('keydown', function (event) {
         location.reload();
     }
 });
+
+const restart = document.getElementById('restart-btn');
+restart.addEventListener('click', function (e) {
+    location.reload();
+});
+
+// Which level is this ?
+const params = new URLSearchParams(window.location.search);
+export let level = params.get('level');
+
+//--------Mission Briefing----------
+
+/**
+ * Populates the mission briefing popup from level.json data.
+ * Called by main.js after the level config is fetched.
+ *
+ * @param {string[]} lines - Array of paragraph strings
+ * @param {string} destination - Destination body name (shown in the header)
+ */
+export function setBriefing(lines, destination) {
+    const container = document.getElementById('briefing-body');
+    if (!container) return;
+
+    container.innerHTML = '';
+    for (const line of lines) {
+        const p = document.createElement('p');
+        p.className = 'mb-3';
+        p.textContent = line;
+        container.appendChild(p);
+    }
+
+    const dest = document.getElementById('briefing-destination');
+    if (dest) dest.textContent = destination?.toUpperCase() ?? '';
+}
+
+//--------Win Screen----------
+
+/** Returns true if any thruster is currently active (used by win_condition and main.js) */
+export function isBurning() {
+    return controls.prograding || controls.retrograding;
+}
+
+/**
+ * Renders the win overlay, POSTs the score to MongoDB, and shows the result.
+ * Async — fires after the animation loop has already stopped.
+ *
+ * @param {{ username, level, timeSeconds, fuelUsed, predictedScore }} payload
+ */
+export async function showWinScreen(payload) {
+    const overlay = document.getElementById('win-overlay');
+    const stats   = document.getElementById('win-stats');
+    if (!overlay || !stats) return;
+
+    // Show panel immediately with a loading state
+    stats.innerHTML = `<div style="text-align:center;padding:1rem;opacity:0.55;letter-spacing:0.1em">
+        TRANSMITTING...
+    </div>`;
+    overlay.hidden = false;
+
+    let displayScore = payload.predictedScore;
+    let verified     = false;
+    let submitted    = false;
+
+    try {
+        const res = await fetch('/api/scores', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify(payload),
+        });
+        if (res.ok) {
+            const data   = await res.json();
+            displayScore = data.actualScore;
+            verified     = data.verified;
+            submitted    = true;
+        }
+    } catch (err) {
+        console.warn('[score submit] server unreachable:', err.message);
+    }
+
+    const statusLine = submitted
+        ? verified
+            ? ''
+            : ''
+        : '○ Server unreachable — score not recorded';
+
+    stats.innerHTML = `
+        <div class="win-stat-row">
+            <span>PILOT</span>
+            <span class="win-stat-value">${payload.username}</span>
+        </div>
+        <div class="win-stat-row">
+            <span>TIME</span>
+            <span class="win-stat-value">${payload.timeSeconds}s</span>
+        </div>
+        <div class="win-stat-row">
+            <span>FUEL</span>
+            <span class="win-stat-value">${payload.fuelUsed}</span>
+        </div>
+        <div class="win-stat-row">
+            <span>SCORE</span>
+            <span class="win-stat-value">${displayScore.toLocaleString()}</span>
+        </div>
+        <div style="font-size:0.7rem;margin-top:0.75rem;opacity:0.5">${statusLine}</div>
+    `;
+}
