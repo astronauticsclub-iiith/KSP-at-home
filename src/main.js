@@ -36,7 +36,7 @@ renderer.shadowMap.type = THREE.PCFShadowMap;
 
 //--------------LEVEL SETUP----------------------
 
-const levelRes = await fetch('/KSP-at-home/level.json');
+const levelRes = await fetch(`${import.meta.env.BASE_URL}level.json`);
 const allLevels = await levelRes.json();
 const levelCfg = allLevels[UI.level] ?? allLevels['1'];
 
