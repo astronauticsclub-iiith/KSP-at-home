@@ -3,6 +3,7 @@ import { trajectory_Geometry } from '../entities/pod.js';
 import * as POD from '../entities/pod.js';
 import * as PLANETS from '../entities/planets.js';
 import { addBuyIn } from './score.js';
+import { crashState } from '../physics/collision.js';
 
 // This file is responsible for updating the HUD and UI and Entites
 
@@ -44,6 +45,12 @@ probtn.addEventListener('pointerdown', () => {
 probtn.addEventListener('pointerup', () => {
     controls.prograding = false;
 });
+probtn.addEventListener('pointerleave', () => {
+    controls.prograding = false;
+});
+probtn.addEventListener('pointercancel', () => {
+    controls.prograding = false;
+});
 
 const retrobtn = document.getElementById('retrograde');
 retrobtn.addEventListener('pointerdown', () => {
@@ -52,6 +59,12 @@ retrobtn.addEventListener('pointerdown', () => {
 });
 
 retrobtn.addEventListener('pointerup', () => {
+    controls.retrograding = false;
+});
+retrobtn.addEventListener('pointerleave', () => {
+    controls.retrograding = false;
+});
+retrobtn.addEventListener('pointercancel', () => {
     controls.retrograding = false;
 });
 
@@ -91,9 +104,44 @@ setInterval(update_timer, 250);
 
 //---------- Keybindings ----------
 window.addEventListener('keydown', function (event) {
-    if (event.key.toLowerCase() === 'r') {
-        location.reload();
+    const key = event.key.toLowerCase();
+
+    if (key === 'backspace') {
+        event.preventDefault();
+        window.location.href = 'index.html';
+        return;
     }
+
+    if (key === 'r') {
+        if (crashState.crashed) {
+            location.reload();
+            return;
+        }
+        if (!event.repeat && !controls.retrograding) {
+            addBuyIn();
+            controls.retrograding = true;
+        }
+    } else if (key === 'p') {
+        if (!event.repeat && !controls.prograding) {
+            addBuyIn();
+            controls.prograding = true;
+        }
+    }
+});
+
+window.addEventListener('keyup', function (event) {
+    const key = event.key.toLowerCase();
+
+    if (key === 'r') {
+        controls.retrograding = false;
+    } else if (key === 'p') {
+        controls.prograding = false;
+    }
+});
+
+window.addEventListener('blur', function () {
+    controls.prograding = false;
+    controls.retrograding = false;
 });
 
 const restart = document.getElementById('restart-btn');

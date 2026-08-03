@@ -69,18 +69,66 @@ button,
 
 /* landscape mobile: everything sized off vh/vw only */
 @media screen and (max-width: 900px) {
-    #ui .absolute.top-4.left-4 {
-        top: 1.5vh;
-        left: 1.5vw;
-        gap: 1vh;
+    #controls {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        display: block;
     }
 
-    #ui button,
-    #ui .back-btn,
+    /* Left controls: Prograde, Predict, Back */
+    #prograde {
+        position: absolute;
+        top: 2vh;
+        left: 2vw;
+        width: 22vw;
+        padding: 1.2vh 1.5vw;
+        font-size: 3.5vh;
+        pointer-events: auto;
+    }
+
+    #predict {
+        position: absolute;
+        top: 9.5vh;
+        left: 2vw;
+        width: 22vw;
+        padding: 1.2vh 1.5vw;
+        font-size: 2.6vh;
+        pointer-events: auto;
+    }
+
+    #back-btn {
+        position: absolute;
+        top: 17vh;
+        left: 2vw;
+        width: 12vw;
+        padding: 0.8vh 1vw;
+        font-size: 2.2vh;
+        pointer-events: auto;
+        text-align: center;
+    }
+
+    /* Right controls: Retrograde, Time */
+    #retrograde {
+        position: absolute;
+        top: 2vh;
+        right: 2vw;
+        width: 22vw;
+        padding: 1.2vh 1.5vw;
+        font-size: 3.5vh;
+        pointer-events: auto;
+        text-align: right;
+    }
+
     #timer {
-        width: 20vw;
-        padding: 1vh 1.5vw;
-        font-size: 4vh;
+        position: absolute;
+        top: 9.5vh;
+        right: 2vw;
+        width: 22vw;
+        padding: 1.2vh 1.5vw;
+        font-size: 3.5vh;
+        pointer-events: auto;
+        text-align: right;
     }
 
     #telemetry {
@@ -89,7 +137,7 @@ button,
         font-size: 1.8vh;
         line-height: 1.4;
         bottom: 1.5vh;
-        left: 1.5vw;
+        left: 2vw;
     }
 
     #tutorial-popup>div {
