@@ -73,18 +73,22 @@ retrobtn.addEventListener('pointercancel', () => {
 export let autoPredict = false;
 const tra_btn = document.getElementById('predict');
 
-tra_btn.addEventListener('click', () => {
+export function togglePredict() {
     autoPredict = !autoPredict;
 
     if (autoPredict) {
-        tra_btn.innerText = 'Stop Prediction';
+        if (tra_btn) tra_btn.innerText = 'Stop Prediction (T)';
     } else {
-        tra_btn.innerText = 'Predict Trajectory';
+        if (tra_btn) tra_btn.innerText = 'Predict Trajectory (T)';
         const attr = trajectory_Geometry.attributes.position;
         trajectory_Geometry.setDrawRange(0, 0);
         attr.needsUpdate = true;
     }
-});
+}
+
+if (tra_btn) {
+    tra_btn.addEventListener('click', togglePredict);
+}
 
 // Timer
 
@@ -125,6 +129,10 @@ window.addEventListener('keydown', function (event) {
         if (!event.repeat && !controls.prograding) {
             addBuyIn();
             controls.prograding = true;
+        }
+    } else if (key === 't') {
+        if (!event.repeat) {
+            togglePredict();
         }
     }
 });
