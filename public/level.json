@@ -9,13 +9,13 @@
         "cameraTarget": { "x": 0, "y": 4 },
         "cameraZ": 15,
         "briefing": [
-            "Transmission received. Earth is falling apart — resources are gone, the surface is failing, and there is no time left to wait.",
-            "You are the last line of defense against extinction. A colony ship sits fueled and waiting, but it needs a proven flight path before launch.",
+            "Transmission received. Earth is falling apart -resources are gone, and there is no time left to wait.",
+            "You are the last line of defense against extinction. A colony ship sits fueled and waiting, but it needs a flight path before launch.",
             "Your first mission: reach the Moon. Everything that comes after depends on you."
         ]
     },
     "2": {
-        "activeBodies": ["moon", "saturn", "jupiter"],
+        "activeBodies": ["moon", "mars", "jupiter"],
         "startPos": { "x": 6, "y": 9.2 },
         "startVel": { "x": 0.55, "y": 0 },
         "destination": "jupiter",
@@ -24,24 +24,24 @@
         "cameraTarget": { "x": 6, "y": 8 },
         "cameraZ": 15,
         "briefing": [
-            "The Moon landing was a success. But Earth's situation has only worsened — conventional resources can no longer sustain the colonies.",
-            "Scientists have detected rare isotopes in the gas clouds near Jupiter. Use Saturn's gravity well for a slingshot maneuver and push deeper into the system.",
-            "The planets are stable — no orbital drift. Plot your course carefully. There is no turning back."
+            "The Moon landing was a success. But Earth's situation has only worsened  conventional resources can no longer sustain the colonies.",
+            "Scientists have detected rare isotopes in the gas clouds near Jupiter. Use Mars's gravity well for a slingshot maneuver and push deeper into the system.",
+            "The planets are stable no orbital drift. Plot your course carefully. There is no turning back."
         ]
     },
     "3": {
         "activeBodies": ["jupiter", "neptune", "pluto"],
-        "startPos": { "x": -23, "y": 10.3 },
-        "startVel": { "x": 0.82, "y": 0 },
+        "startPos": { "x": -23, "y": 12.3 },
+        "startVel": { "x": -0.42, "y": 0 },
         "destination": "pluto",
         "orbitRadius": 3,
         "dynamicBodies": false,
         "cameraTarget": { "x": -32, "y": 6 },
         "cameraZ": 28,
         "briefing": [
-            "Jupiter is behind you. The inner system is gone — Earth, the Moon, Saturn. All of it is now a memory.",
+            "Jupiter is behind you. The inner system is gone Earth, the Sun, Mars. All of it is now a memory.",
             "This is the final leg. Navigate past Neptune using its gravity, and reach Pluto at the edge of the solar system.",
-            "Beyond Pluto there is nothing. No planet, no station, no rescue. This is humanity's last step — make it count."
+            "Beyond Pluto there is nothing. No planet, no station, no rescue. This is humanity's last step make it count."
         ]
     }
 }

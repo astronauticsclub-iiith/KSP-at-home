@@ -77,21 +77,21 @@ jupiter.position.y = bodies.jupiter.pos.y;
 
 export { jupiter };
 
-// Saturn (new — level 2 middle maneuver planet)
+// Mars (level 2 middle maneuver planet)
 
-const saturnTexture = loader.load('assets/saturn.jpg');
+const marsTexture = loader.load('assets/mars.jpg');
 
-const saturnGeometry = new THREE.SphereGeometry(bodies.saturn.r, 64, 64);
+const marsGeometry = new THREE.SphereGeometry(bodies.mars.r, 64, 64);
 
-const saturnMaterial = new THREE.MeshPhongMaterial({
-    map: saturnTexture,
+const marsMaterial = new THREE.MeshPhongMaterial({
+    map: marsTexture,
 });
 
-const saturn = new THREE.Mesh(saturnGeometry, saturnMaterial);
-saturn.position.x = bodies.saturn.pos.x;
-saturn.position.y = bodies.saturn.pos.y;
+const mars = new THREE.Mesh(marsGeometry, marsMaterial);
+mars.position.x = bodies.mars.pos.x;
+mars.position.y = bodies.mars.pos.y;
 
-export { saturn };
+export { mars };
 
 // Neptune (level 3 — middle maneuver planet)
 
@@ -126,4 +126,4 @@ pluto.position.y = bodies.pluto.pos.y;
 export { pluto };
 
 // Named mesh lookup map — used by main.js to add planets by name from level.json
-export const planetMeshes = { earth, moon, sun, jupiter, saturn, neptune, pluto };
+export const planetMeshes = { earth, moon, sun, jupiter, mars, neptune, pluto };

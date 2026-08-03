@@ -37,10 +37,10 @@ let bodies = {
         m: 0.8,
         r: 1.8,
         theta: 0,
-        pos: { x: -23, y: 8, z: 0 },
+        pos: { x: -26, y: 8, z: 0 },
     },
-    saturn: {
-        name: 'SATURN',
+    mars: {
+        name: 'MARS',
         m: 0.3,
         r: 1.2,
         theta: 0,
@@ -49,16 +49,16 @@ let bodies = {
     neptune: {
         name: 'NEPTUNE',
         m: 0.2,
-        r: 0.4,
+        r: 0.8,
         theta: 0,
-        pos: { x: -35, y: -2, z: 0 },
+        pos: { x: -45, y: -10, z: 0 },
     },
     pluto: {
         name: 'PLUTO',
         m: 0.05,
-        r: 0.55,
+        r: 0.35,
         theta: 0,
-        pos: { x: -50, y: 14, z: 0 },
+        pos: { x: -70, y: 14, z: 0 },
     },
 }; //artifically increase moons pull for now
 
