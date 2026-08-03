@@ -98,7 +98,7 @@ PATH.predict_trajectory_init(); //start trajectory
 
 // FPS cap: ensures consistent speed across 60Hz, 120Hz, and 144Hz displays
 let lastTime = 0;
-const FRAME_INTERVAL = 1000 / 60; // 16.67ms (60 FPS cap)
+const FRAME_INTERVAL = 1000 / 80; 
 
 //animation loop
 function animate(currentTime = 0) {
