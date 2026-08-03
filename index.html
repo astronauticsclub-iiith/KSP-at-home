@@ -245,6 +245,27 @@
     font-family: inherit;
   }
   #login-confirm:hover { background: rgba(255,255,255,0.14); }
+
+  /* Make login more prominent on small screens */
+  @media (max-width: 500px) {
+    #login-area {
+      top: 0.75rem;
+      right: auto;
+      left: 50%;
+      transform: translateX(-50%);
+      justify-content: center;
+    }
+
+    .login-pill {
+      padding: 0.55rem 1.3rem;
+      font-size: 0.9rem;
+      border: 1.5px solid rgba(255,255,255,0.5);
+      background: rgba(255,255,255,0.1);
+      letter-spacing: 0.1em;
+    }
+
+    #pilot-name { font-size: 0.85rem; }
+  }
 </style>
 </head>
 <body>
