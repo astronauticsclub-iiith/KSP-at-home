@@ -1,6 +1,7 @@
 /* mobile.css */
 
 button,
+.back-btn,
 #tutorial-close,
 #restart-btn,
 .level-btn {
@@ -9,6 +10,7 @@ button,
 }
 
 button,
+.back-btn,
 #tutorial-close,
 #restart-btn,
 .level-btn,
@@ -74,6 +76,7 @@ button,
     }
 
     #ui button,
+    #ui .back-btn,
     #timer {
         width: 20vw;
         padding: 1vh 1.5vw;
