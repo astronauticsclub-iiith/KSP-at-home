@@ -34,6 +34,13 @@ document.body.appendChild(renderer.domElement);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFShadowMap;
 
+// Keep canvas and camera in sync when window/device orientation changes
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
 //--------------LEVEL SETUP----------------------
 
 const levelRes = await fetch(`${import.meta.env.BASE_URL}level.json`);
