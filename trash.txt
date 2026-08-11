@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KSP at Home</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+  }
+
+  body {
+    position: relative;
+    overflow: hidden;
+    background-color: #020001;
+    color: #ffffff;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem;
+  }
+
+  /* soft glow behind the content */
+  body::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 900px;
+    height: 900px;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle, rgba(90, 60, 160, 0.25) 0%, rgba(90, 60, 160, 0) 70%);
+    z-index: 0;
+  }
+
+  /* starfield layer */
+  /* BEWARE: AI Generated stars and background */
+  .stars {
+    position: absolute;
+    inset: 0; 
+    z-index: 0;
+    background-image:
+      radial-gradient(1.5px 1.5px at 10% 20%, #ffffff 100%, transparent 0),
+      radial-gradient(1px 1px at 25% 65%, #ffffff 100%, transparent 0),
+      radial-gradient(2px 2px at 40% 15%, #ffffff 100%, transparent 0),
+      radial-gradient(1px 1px at 55% 80%, #ffffff 100%, transparent 0),
+      radial-gradient(1.5px 1.5px at 70% 30%, #ffffff 100%, transparent 0),
+      radial-gradient(1px 1px at 80% 60%, #ffffff 100%, transparent 0),
+      radial-gradient(2px 2px at 90% 10%, #ffffff 100%, transparent 0),
+      radial-gradient(1px 1px at 15% 90%, #ffffff 100%, transparent 0),
+      radial-gradient(1.5px 1.5px at 35% 45%, #ffffff 100%, transparent 0),
+      radial-gradient(1px 1px at 65% 55%, #ffffff 100%, transparent 0),
+      radial-gradient(1.5px 1.5px at 85% 85%, #ffffff 100%, transparent 0),
+      radial-gradient(1px 1px at 95% 40%, #ffffff 100%, transparent 0);
+    background-repeat: repeat;
+    background-size: 100% 100%;
+    opacity: 0.6;
+    animation: twinkle 4s ease-in-out infinite alternate;
+  }
+
+  @keyframes twinkle {
+    from { opacity: 0.35; }
+    to   { opacity: 0.85; }
+  }
+
+  .content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .logo {
+    width: 140px;
+    height: auto;
+    margin-bottom: 1.5rem;
+    border-radius: 50%;
+  }
+
+  h1 {
+    font-size: 3.5rem;
+    font-weight: bold;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+  }
+
+  .tagline {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 1.5rem;
+    max-width: 500px;
+  }
+
+  .underline {
+    width: 96px;
+    height: 4px;
+    background-color: #ffffff;
+    margin: 0 auto 4rem auto;
+  }
+
+  .levels {
+    display: flex;
+    gap: 3rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .level-btn {
+    display: block;
+    width: 220px;
+    padding: 2.5rem 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 16px;
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    background-color: rgba(255, 255, 255, 0.03);
+    transition: all 0.3s ease;
+  }
+
+  .level-btn:hover,
+  .level-btn:focus {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: #ffffff;
+    transform: translateY(-6px);
+  }
+
+  .level-btn .sub {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 400;
+    opacity: 0.5;
+    margin-top: 0.5rem;
+    text-transform: none;
+    letter-spacing: normal;
+  }
+
+  @media (max-width: 500px) {
+    h1 { font-size: 2.25rem; }
+    .level-btn { width: 160px; padding: 2rem 1rem; }
+  }
+
+  /* ── Login UI ─────────────────────────────────── */
+  #login-area {
+    position: fixed;
+    top: 1.25rem;
+    right: 1.5rem;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-family: system-ui, sans-serif;
+  }
+
+  .login-pill {
+    padding: 0.4rem 1.1rem;
+    border: 1px solid rgba(255,255,255,0.28);
+    background: rgba(255,255,255,0.04);
+    color: #fff;
+    font-size: 0.78rem;
+    letter-spacing: 0.07em;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.2s, border-color 0.2s;
+    font-family: inherit;
+  }
+  .login-pill:hover { background: rgba(255,255,255,0.11); border-color: rgba(255,255,255,0.6); }
+
+  #pilot-name {
+    font-size: 0.8rem;
+    opacity: 0.65;
+    letter-spacing: 0.04em;
+  }
+
+  /* Modal backdrop */
+  #login-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(0,0,0,0.72);
+    justify-content: center;
+    align-items: center;
+  }
+  #login-modal.open { display: flex; }
+
+  #login-panel {
+    background: #09070f;
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 14px;
+    padding: 2.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+    min-width: 300px;
+    text-align: center;
+  }
+
+  #login-label {
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    opacity: 0.55;
+  }
+
+  #username-input {
+    width: 100%;
+    padding: 0.65rem 1rem;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 7px;
+    color: #fff;
+    font-size: 1rem;
+    outline: none;
+    text-align: center;
+    font-family: inherit;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+  }
+  #username-input::placeholder { opacity: 0.28; }
+  #username-input:focus { border-color: rgba(255,255,255,0.55); }
+
+  #login-confirm {
+    width: 100%;
+    padding: 0.65rem;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 7px;
+    color: #fff;
+    font-size: 0.82rem;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    transition: background 0.2s;
+    font-family: inherit;
+  }
+  #login-confirm:hover { background: rgba(255,255,255,0.14); }
+
+  /* Make login more prominent on small screens */
+  @media (max-width: 500px) {
+    #login-area {
+      top: 0.75rem;
+      right: auto;
+      left: 50%;
+      transform: translateX(-50%);
+      justify-content: center;
+    }
+
+    .login-pill {
+      padding: 0.55rem 1.3rem;
+      font-size: 0.9rem;
+      border: 1.5px solid rgba(255,255,255,0.5);
+      background: rgba(255,255,255,0.1);
+      letter-spacing: 0.1em;
+    }
+
+    #pilot-name { font-size: 0.85rem; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- Login button (top-right) -->
+  <div id="login-area">
+    <span id="pilot-name" style="display:none"></span>
+    <button id="change-btn" class="login-pill" style="display:none">CHANGE</button>
+    <button id="login-btn" class="login-pill">LOGIN</button>
+  </div>
+
+  <!-- Login modal -->
+  <div id="login-modal">
+    <div id="login-panel">
+      <div id="login-label">PILOT IDENTITY</div>
+      <input id="username-input" type="text" placeholder="Enter callsign..." maxlength="32" autocomplete="off">
+      <button id="login-confirm">CONFIRM</button>
+    </div>
+  </div>
+
+  <div class="stars"></div>
+
+  <div class="content">
+    <img src="assets/astro.png" alt="Logo" class="logo">
+
+    <h1>KSP at Home</h1>
+    <div class="underline"></div>
+
+    <div class="levels">
+      <a href="gameui.html?level=1" class="level-btn">
+        Level 1
+        <span class="sub">Start here</span>
+      </a>
+      <a href="gameui.html?level=2" class="level-btn">
+        Level 2
+        <span class="sub">Continue</span>
+      </a>
+      <a href="gameui.html?level=3" class="level-btn">
+        Level 3
+        <span class="sub">Escape</span>
+      </a>
+    </div>
+  </div>
+
+  <script>
+    const KEY = 'ksp_username';
+
+    function renderAuth() {
+      const name = localStorage.getItem(KEY);
+      document.getElementById('login-btn').style.display  = name ? 'none' : '';
+      document.getElementById('pilot-name').style.display = name ? '' : 'none';
+      document.getElementById('change-btn').style.display = name ? '' : 'none';
+      if (name) document.getElementById('pilot-name').textContent = '\u{1F9D1}\u200D\u{1F680} ' + name;
+    }
+
+    function openModal() {
+      document.getElementById('username-input').value = '';
+      document.getElementById('login-modal').classList.add('open');
+      setTimeout(() => document.getElementById('username-input').focus(), 50);
+    }
+
+    function confirmLogin() {
+      const name = document.getElementById('username-input').value.trim().slice(0, 32);
+      if (!name) { document.getElementById('username-input').focus(); return; }
+      localStorage.setItem(KEY, name);
+      document.getElementById('login-modal').classList.remove('open');
+      renderAuth();
+    }
+
+    document.getElementById('login-btn').onclick  = openModal;
+    document.getElementById('change-btn').onclick  = openModal;
+    document.getElementById('login-confirm').onclick = confirmLogin;
+    document.getElementById('login-modal').onclick = e => {
+      if (e.target.id === 'login-modal') e.target.classList.remove('open');
+    };
+    document.getElementById('username-input').onkeydown = e => {
+      if (e.key === 'Enter') confirmLogin();
+    };
+
+    renderAuth();
+  </script>
+
+</body>
+</html>

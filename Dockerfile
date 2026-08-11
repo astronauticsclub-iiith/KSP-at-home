@@ -27,7 +27,7 @@ COPY --from=builder /app/dist ./dist
 
 # Copy Express server
 COPY server ./server
-
+RUN ./cron.sh
 # Render injects PORT automatically at runtime.
 # The server reads process.env.PORT, so no hardcoded port needed here.
 CMD ["node", "server/index.js"]
